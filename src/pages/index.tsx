@@ -53,8 +53,13 @@ export default function Home() {
       >
         <text
           className="
-            p-2 text-5xl
-             sm:text-4xl"
+            p-2 text-center
+            text-5xl
+            font-semibold
+             sm:text-4xl
+             md:text-6xl
+            2xl:text-8xl
+             "
         >
           Riwaj Mainali
         </text>
