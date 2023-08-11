@@ -10,37 +10,34 @@ type color = {
 export default function Home() {
   const [colors, setColors] = useState<color[]>([]);
 
-  const analogousColorBlue = () => {
-    const r = Math.floor(Math.random() * 100); // Generating lower values for lighter shades
-    const g = Math.floor(Math.random() * 100);
-    const b = 150 + Math.floor(Math.random() * 100); // Adding a constant value to ensure a bluish tone
-    return { r, g, b };
-  };
-  const analogousColorRed = () => {
-    const r = 150 + Math.floor(Math.random() * 100); // Generating lower values for lighter shades
-    const g = Math.floor(Math.random() * 100);
-    const b = Math.floor(Math.random() * 100); // Adding a constant value to ensure a bluish tone
-    return { r, g, b };
-  };
-  const analogousColorGreen = () => {
-    const r = Math.floor(Math.random() * 100); // Generating lower values for lighter shades
-    const g = 150 + Math.floor(Math.random() * 100);
-    const b = Math.floor(Math.random() * 100); // Adding a constant value to ensure a bluish tone
+  const analogousColor = (colorChoice: "red" | "green" | "blue") => {
+    const r =
+      colorChoice === "red"
+        ? 180 + Math.floor(Math.random() * 80)
+        : Math.floor(Math.random() * 100); // Generating lower values for lighter shades
+    const g =
+      colorChoice === "green"
+        ? 150 + Math.floor(Math.random() * 100)
+        : Math.floor(Math.random() * 100); // Generating lower values for lighter shades
+    const b =
+      colorChoice === "blue"
+        ? 100 + Math.floor(Math.random() * 100)
+        : Math.floor(Math.random() * 100); // Generating lower values for lighter shades
     return { r, g, b };
   };
 
   useEffect(() => {
     setColors([
-      analogousColorBlue(),
-      analogousColorRed(),
-      analogousColorGreen(),
+      analogousColor("red"),
+      analogousColor("green"),
+      analogousColor("blue"),
     ]);
   }, []);
   const red = `${colors[0]?.r}, ${colors[0]?.g}, ${colors[0]?.b}`;
   const blue = `${colors[1]?.r}, ${colors[1]?.g}, ${colors[1]?.b}`;
   const green = `${colors[2]?.r}, ${colors[2]?.g}, ${colors[2]?.b}`;
   const gradientStyle = {
-    background: `linear-gradient(to right, rgb(${red}),rgb(${green}), rgb(${blue}))`,
+    background: `linear-gradient(to right, rgb(${red}),rgba(${green},0.6), rgb(${blue}))`,
   };
 
   console.log(colors[0]);
@@ -54,16 +51,13 @@ export default function Home() {
         style={gradientStyle}
         className="flex min-h-screen flex-col justify-center"
       >
-        <div className="">
-          <text
-            className=" bg-gradient-to-r 
-            from-[#7d7d7d] to-[#e6e6e6]
-            bg-clip-text p-12 text-8xl
-             text-transparent"
-          >
-            Riwaj Mainali
-          </text>
-        </div>
+        <text
+          className="
+            p-2 text-5xl
+             sm:text-4xl"
+        >
+          Riwaj Mainali
+        </text>
       </main>
     </>
   );
