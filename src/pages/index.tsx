@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useState, useEffect } from "react";
-
+import Link from "next/link";
 type color = {
   r: number;
   g: number;
@@ -51,18 +51,42 @@ export default function Home() {
         style={gradientStyle}
         className="flex min-h-screen flex-col justify-center"
       >
-        <text
-          className="
-            p-2 text-center
-            text-5xl
+        <div className="flex-col p-8">
+          <div>
+            <text
+              className="
+            3xl:text-9xl
+            pb-6
+            text-4xl
             font-semibold
-             sm:text-4xl
-             md:text-6xl
+            sm:text-4xl
+            md:text-6xl
+            lg:text-7xl
+            xl:text-7xl
             2xl:text-8xl
              "
-        >
-          Riwaj Mainali
-        </text>
+            >
+              Riwaj Mainali
+            </text>
+          </div>
+          <div>
+            <text
+              className="
+              3xl:text-5xl
+              pl-2
+              text-xl
+              font-semibold
+              sm:text-2xl
+              md:text-2xl
+              lg:text-3xl
+              2xl:text-3xl
+              "
+            >
+              <Link href="/blog">Blog</Link>
+              <Link href="/">About me</Link>
+            </text>
+          </div>
+        </div>
       </main>
     </>
   );
