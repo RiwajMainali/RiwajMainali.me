@@ -1,55 +1,89 @@
-import React, { Ref } from 'react';
-import { useRef, useEffect, useState, createRef, RefObject } from 'react';
+import React, { useEffect, useState } from 'react';
+import { set } from 'zod';
 
 export default function GameOfLife() {
-  const [sliderValue, setSliderValue] = useState(0);
-  const [pixelSize, setPixelSize] = useState(20);
-  const [gridSize, setGridSize] = useState(256);
+  const [grid, setGrid] = useState<number[][]>([[]]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [size, setSize] = useState(10);
   useEffect(() => {
-    if (sliderValue !== 0) {
-      setGridSize(2 ** sliderValue);
-    }
-    console.log('gridSize', gridSize);
-  }, [sliderValue]);
-  useEffect(() => {}, []);
+    setGrid(
+      Array(size)
+        .fill(0)
+        .map(() => Array(2 * size).fill(0))
+    );
+  }, []);
+
   return (
     <>
-      <div>
-        <div className="p-4">
-          <input
-            type="range"
-            className="transparent w-128 h-1.5 cursor-pointer appearance-none rounded-lg border-transparent bg-neutral-200"
-            id="customRange1"
-            step={1}
-            max={8}
-            min={1}
-            onChange={(e) => {
-              setSliderValue(parseInt(e.target.value));
-            }}
-          />
+      <div className="p-4 font-semibold">
+        <text className="text-4xl">The Game of Life</text>
 
-          <div
-            // className="grid-rows-8  grid grid-cols-8 gap-0.5"
-            style={{
-              width: '512px',
-              height: '512px',
-              gridRowGap: '1px',
-              gridColumnGap: '1px',
-              display: 'grid',
-              gridTemplateColumns: `repeat(auto-fill, ${32}px)`,
-            }}
-          >
-            {Array.from({ length: gridSize - 1 }).map((_, index) => (
-              <div className="">
-                <div
-                  key={index}
-                  style={{ width: pixelSize, height: pixelSize }}
-                  className={`border border-gray-300 bg-green-500`}
-                ></div>
-              </div>
+        <text className="text-2xl">Select the Size</text>
+
+        <input
+          type="number"
+          min="1"
+          max="100"
+          defaultValue={size}
+          style={{
+            backgroundColor: 'transparent',
+            border: '1px solid black',
+          }}
+          onChange={(e) => {
+            setSize(parseInt(e.target.value));
+            setGrid(
+              Array(size)
+                .fill(0)
+                .map(() => Array(2 * size).fill(0))
+            );
+          }}
+        />
+        <button
+          className="m-2 p-2"
+          onClick={() => {
+            setGrid(
+              Array(size)
+                .fill(0)
+                .map(() => Array(2 * size).fill(0))
+            );
+          }}
+        >
+          {' '}
+          Clear{' '}
+        </button>
+
+        {grid.map((row, i) => (
+          <div key={i} className="flex" draggable="false">
+            {row.map((cell, j) => (
+              <div
+                draggable="false"
+                key={j}
+                style={{
+                  backgroundColor: cell ? 'black' : 'white',
+                }}
+                className="h-4 w-4 border"
+                onClick={() => {
+                  const newGrid = JSON.parse(JSON.stringify(grid));
+                  newGrid[i][j] = newGrid[i][j] ? 0 : 1;
+                  setGrid(newGrid);
+                }}
+                onMouseDown={() => {
+                  setIsDragging(true);
+                }}
+                onMouseMove={() => {
+                  if (isDragging) {
+                    const newGrid = JSON.parse(JSON.stringify(grid));
+                    newGrid[i][j] = newGrid[i][j] ? 0 : 1;
+                    setGrid(newGrid);
+                  }
+                }}
+                onMouseUp={() => {
+                  setIsDragging(false);
+                }}
+              ></div>
             ))}
           </div>
-        </div>
+        ))}
       </div>
     </>
   );
