@@ -1,14 +1,18 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use wasm_bindgen::prelude::*;
+use sycamore::prelude::*;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[wasm_bindgen]
+pub fn run_app() -> Result<(), JsValue> {
+    wasm_logger::init(wasm_logger::Config::default());
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    let document = web_sys::window().unwrap().document().unwrap();
+    let root = document.get_element_by_id("sycamore-root").unwrap();
+
+    sycamore::render_to(|cx| {
+        view! { cx,
+            p { "Hello, World!" }
+        }
+    }, &root);
+
+    Ok(())
 }
