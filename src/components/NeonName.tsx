@@ -20,7 +20,6 @@ export default function NeonName({ text }: { text: string }) {
     <h1
       className={`neon${repaired ? ' repaired' : ''}`}
       aria-label={text}
-      title={repaired ? undefined : 'this sign needs a repair'}
       onClick={() => setRepaired((r) => !r)}
     >
       {[...text].map((ch, i) => {
