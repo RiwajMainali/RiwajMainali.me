@@ -22,6 +22,8 @@ export default function NeonName({ text }: { text: string }) {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     const onAlarm = () => {
+      // A failed break-in undoes the repair: the sign comes back broken.
+      setRepaired(false);
       setAlarm((a) => a + 1);
       clearTimeout(timer);
       timer = setTimeout(() => setAlarm(0), 1200);
