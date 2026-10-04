@@ -214,3 +214,16 @@ body {
     animation: none;
   }
 }
+
+/* SIGINT waterfall: fades in late, stays behind and dim enough to read over. */
+.waterfall {
+  opacity: 0;
+  transition: opacity 2s ease;
+  /* Strongest on the right, where there's no text. */
+  -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.35), #000 75%);
+  mask-image: linear-gradient(to right, rgba(0, 0, 0, 0.35), #000 75%);
+}
+
+.waterfall.on {
+  opacity: 0.35;
+}
