@@ -16,8 +16,34 @@ const ROOT: Dir = dir({
   blog: dir({ 'coming-soon.txt': file('posts are being written. check back soon.') }),
   projects: dir({ 'coming-soon.txt': file('projects are being polished. check back soon.') }),
   '.bash_history': file('sudo make me a sandwich\nrm -rf / --no-preserve-root\ncat .secret\nexit'),
-  '.secret': file('dGhlIG1hY2hpbmUgaXNuJ3Qgb25saW5lIHlldC4gY29tZSBiYWNrIHNvb24u'),
+  '.secret': file('dGhlIG1hY2hpbmUgZ29kIGlzbid0IG9ubGluZSB5ZXQuIGNvbWUgYmFjayBzb29uLg=='),
 });
+
+// Planted in ~ after three failed sudo attempts.
+const INCIDENT_REPORT = file(
+  'INCIDENT #0x1337\n' +
+    'user `guest` attempted privilege escalation. three times. badly.\n' +
+    'this incident has been reported to the machine god.\n\n' +
+    'the machine god does not answer to sudo.\n' +
+    'it answers to those who find where it listens.',
+);
+
+const SUDO_INSULTS = [
+  'wrong. the machine god is unimpressed.',
+  "nope. and no, it isn't `password`.",
+  'that was not it, and deep down you knew.',
+  'access denied. your keyboard is judging you.',
+  'incorrect. have you considered a career in gardening?',
+];
+
+const NEOFETCH = `        ▄▄▄▄▄▄▄        guest@riwaj.me
+      ▄█▀     ▀█▄      --------------
+     ██  ▄▀▀▀▄  ██     OS: riwaj.me shell
+     ██  █   █  ██     Host: a neon sign, slightly broken
+     ██  ▀▄▄▄▀  ██     Kernel: next.js
+      ▀█▄     ▄█▀      Shell: this one
+        ▀▀▀▀▀▀▀        Uptime: since you got here
+                       Theme: #39ff14 on #000`;
 
 const HELP = `available commands:
   help              show this list
@@ -72,12 +98,32 @@ export default function Terminal() {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
+  // Non-null while sudo is waiting for a password.
+  const [sudoTries, setSudoTries] = useState<number | null>(null);
+  const [insultIdx, setInsultIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'nearest' });
   }, [lines]);
+
+  // Every password is wrong. Three strikes plants the incident report.
+  function sudoAttempt() {
+    const tries = (sudoTries ?? 0) + 1;
+    const out = [line('', `[sudo] password for ${USER}:`)];
+    if (tries < 3) {
+      out.push(line(SUDO_INSULTS[insultIdx % SUDO_INSULTS.length]));
+      setInsultIdx((i) => i + 1);
+      setSudoTries(tries);
+    } else {
+      ROOT.children['.incident_report'] = INCIDENT_REPORT;
+      out.push(line('sudo: 3 incorrect password attempts'));
+      out.push(line('this incident has been reported. a copy was left in ~ for your records.'));
+      setSudoTries(null);
+    }
+    setLines((ls) => [...ls, ...out]);
+  }
 
   function run(raw: string) {
     const cmdLine = raw.trim();
@@ -153,10 +199,32 @@ export default function Terminal() {
         out.push([...history, cmdLine].map((h, i) => `${String(i + 1).padStart(4)}  ${h}`).join('\n'));
         break;
       case 'sudo':
-        out.push(`${USER} is not in the sudoers file. This incident will be reported.`);
+        if (!args.length) {
+          out.push('usage: sudo <command>');
+          break;
+        }
+        setSudoTries(0);
         break;
       case 'rm':
         out.push('nice try.');
+        break;
+      case 'make':
+        out.push(
+          args.join(' ') === 'me a sandwich'
+            ? 'what? make it yourself.'
+            : `make: *** No rule to make target '${args[0] ?? ''}'.  Stop.`,
+        );
+        break;
+      case 'uname':
+        out.push(args.includes('-a') ? 'riwajOS 1.0.0 neon-tube x86_64 machine-god/offline' : 'riwajOS');
+        break;
+      case 'neofetch':
+        out.push(NEOFETCH);
+        break;
+      case 'ssh':
+      case 'nc':
+      case 'ping':
+        out.push(`${cmd}: ${args[args.length - 1] ?? 'machine-god'}: connection refused. the machine god is sleeping.`);
         break;
       case 'exit':
         out.push('there is no exit. only more shell.');
@@ -178,6 +246,18 @@ export default function Terminal() {
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (sudoTries !== null) {
+      if (e.key === 'Enter') {
+        sudoAttempt();
+        setInput('');
+      } else if (e.key === 'c' && e.ctrlKey) {
+        e.preventDefault();
+        setSudoTries(null);
+        setInput('');
+        setLines((ls) => [...ls, line('^C', `[sudo] password for ${USER}:`)]);
+      }
+      return;
+    }
     if (e.key === 'Enter') {
       run(input);
       setInput('');
@@ -207,7 +287,7 @@ export default function Terminal() {
 
   return (
     <section
-      className="w-full max-w-3xl flex-1 cursor-text font-mono text-sm leading-relaxed sm:text-base"
+      className="w-full flex-1 cursor-text font-mono text-sm leading-relaxed sm:text-base"
       onClick={() => inputRef.current?.focus()}
     >
       {lines.map((l) => (
@@ -217,9 +297,12 @@ export default function Terminal() {
         </div>
       ))}
       <label className="flex items-center">
-        <span className="shrink-0 text-[#1f8f0b]">{promptFor(cwd)}&nbsp;</span>
+        <span className="shrink-0 text-[#1f8f0b]">
+          {sudoTries !== null ? `[sudo] password for ${USER}:` : promptFor(cwd)}&nbsp;
+        </span>
         <input
           ref={inputRef}
+          type={sudoTries !== null ? 'password' : 'text'}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
