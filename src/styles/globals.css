@@ -14,22 +14,43 @@ body {
 
 /* Neon tube name. Base text is the unlit glass tube, readable at first paint. */
 .neon {
-  position: relative;
   width: fit-content;
+  cursor: pointer;
+  user-select: none;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: clamp(2.5rem, 10vw, 7rem);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
+  /* Glow lives on the whole sign so it follows each letter's brightness. */
+  filter: brightness(0.8) drop-shadow(0 0 2px rgba(57, 255, 20, 0.8))
+    drop-shadow(0 0 8px rgba(57, 255, 20, 0.45));
+  transition: filter 0.35s ease;
+}
+
+.neon.fixed {
+  filter: brightness(1.15) drop-shadow(0 0 2px var(--neon)) drop-shadow(0 0 12px rgba(57, 255, 20, 0.8))
+    drop-shadow(0 0 32px rgba(57, 255, 20, 0.45));
+}
+
+.neon-letter {
+  position: relative;
+  display: inline-block;
   color: #050805;
   -webkit-text-stroke: 1px #1b4a12;
 }
 
-/* Lit gas: bright core plus small hot "bubbles" drifting through the letters. */
-.neon::after {
-  content: attr(data-text);
+.neon-space {
+  width: 0.6em;
+  -webkit-text-stroke: 0;
+}
+
+/* Lit gas: bright core plus small hot "bubbles" drifting through the letter. */
+.neon-letter::after {
+  content: attr(data-c);
   position: absolute;
-  inset: 0;
+  /* Extend below the line box so descenders (the j) get lit too. */
+  inset: 0 0 -0.3em 0;
   -webkit-text-stroke: 0;
   color: transparent;
   background-image:
@@ -44,36 +65,103 @@ body {
     200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
-  filter: drop-shadow(0 0 2px var(--neon)) drop-shadow(0 0 10px rgba(57, 255, 20, 0.7))
-    drop-shadow(0 0 28px rgba(57, 255, 20, 0.35));
   opacity: 0;
   animation:
-    neon-ignite 1.1s linear 0.15s forwards,
-    neon-bubbles 9s linear infinite,
-    neon-hum 7s linear 2s infinite;
+    neon-ignite 0.9s linear var(--d) forwards,
+    neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite;
+}
+
+/* Broken letters keep misbehaving after they ignite. Listed last so they win. */
+.neon-letter.sputter::after {
+  animation:
+    neon-ignite 0.9s linear var(--d) forwards,
+    neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite,
+    neon-sputter var(--dur) steps(1, end) calc(var(--d) + 0.9s) infinite;
+}
+.neon-letter.dying::after {
+  animation:
+    neon-ignite 0.9s linear var(--d) forwards,
+    neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite,
+    neon-dying var(--dur) linear calc(var(--d) + 0.9s) infinite;
+}
+.neon-letter.blink::after {
+  animation:
+    neon-ignite 0.9s linear var(--d) forwards,
+    neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite,
+    neon-blink var(--dur) steps(1, end) calc(var(--d) + 0.9s) infinite;
+}
+
+/* Repaired: every letter steady and bright. */
+.neon.fixed .neon-letter::after {
+  opacity: 1;
+  animation: neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite;
+}
+
+/* Mouse users get the repair on hover; touch relies on the click toggle. */
+@media (hover: hover) {
+  .neon:hover {
+    filter: brightness(1.15) drop-shadow(0 0 2px var(--neon)) drop-shadow(0 0 12px rgba(57, 255, 20, 0.8))
+      drop-shadow(0 0 32px rgba(57, 255, 20, 0.45));
+  }
+  .neon:hover .neon-letter::after {
+    opacity: 1;
+    animation: neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite;
+  }
 }
 
 @keyframes neon-ignite {
   0% { opacity: 0; }
-  8% { opacity: 0.9; }
-  12% { opacity: 0.05; }
-  24% { opacity: 0.6; }
-  28% { opacity: 0.1; }
-  46% { opacity: 1; }
-  52% { opacity: 0.35; }
-  58%, 100% { opacity: 1; }
+  10% { opacity: 0.9; }
+  16% { opacity: 0.05; }
+  30% { opacity: 0.6; }
+  36% { opacity: 0.1; }
+  55% { opacity: 1; }
+  62% { opacity: 0.35; }
+  70%, 100% { opacity: 1; }
+}
+
+/* Rapid bursts of stutter, then long stretches of normal. */
+@keyframes neon-sputter {
+  0% { opacity: 1; }
+  2% { opacity: 0.15; }
+  3% { opacity: 0.9; }
+  4% { opacity: 0.05; }
+  6% { opacity: 1; }
+  48% { opacity: 1; }
+  49% { opacity: 0.3; }
+  50% { opacity: 1; }
+  78% { opacity: 0; }
+  83% { opacity: 0.7; }
+  84% { opacity: 0.1; }
+  86% { opacity: 1; }
+}
+
+/* Mostly dim and buzzing, occasionally catches. */
+@keyframes neon-dying {
+  0%, 100% { opacity: 0.25; }
+  20% { opacity: 0.35; }
+  21% { opacity: 0.1; }
+  40% { opacity: 0.3; }
+  55% { opacity: 0.2; }
+  56% { opacity: 1; }
+  60% { opacity: 0.9; }
+  61% { opacity: 0.15; }
+  62% { opacity: 0.85; }
+  64% { opacity: 0.25; }
+}
+
+/* Cuts out completely for a beat. */
+@keyframes neon-blink {
+  0% { opacity: 1; }
+  62% { opacity: 0; }
+  71% { opacity: 1; }
+  73% { opacity: 0; }
+  74% { opacity: 1; }
 }
 
 @keyframes neon-bubbles {
   from { background-position: 0 0, 0 8px, 0 -6px, 0% 0; }
   to { background-position: 370px -46px, -530px 62px, 710px 41px, 200% 0; }
-}
-
-/* Occasional tube flicker after it's lit. */
-@keyframes neon-hum {
-  0%, 95%, 100% { filter: drop-shadow(0 0 2px var(--neon)) drop-shadow(0 0 10px rgba(57, 255, 20, 0.7)) drop-shadow(0 0 28px rgba(57, 255, 20, 0.35)); }
-  96% { filter: drop-shadow(0 0 1px var(--neon)); }
-  97% { filter: drop-shadow(0 0 2px var(--neon)) drop-shadow(0 0 14px rgba(57, 255, 20, 0.8)); }
 }
 
 .term-input {
@@ -82,7 +170,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .neon::after {
+  .neon-letter::after {
     animation: none;
     opacity: 1;
   }
