@@ -14,14 +14,14 @@ const BROKEN: Record<number, { pattern: 'sputter' | 'dying' | 'blink'; dur: numb
 const delayFor = (i: number) => 0.1 + ((i * 7) % 11) * 0.06;
 
 export default function NeonName({ text }: { text: string }) {
-  const [fixed, setFixed] = useState(false);
+  const [repaired, setRepaired] = useState(false);
 
   return (
     <h1
-      className={`neon${fixed ? ' fixed' : ''}`}
+      className={`neon${repaired ? ' repaired' : ''}`}
       aria-label={text}
-      title={fixed ? undefined : 'this sign needs a repair'}
-      onClick={() => setFixed((f) => !f)}
+      title={repaired ? undefined : 'this sign needs a repair'}
+      onClick={() => setRepaired((r) => !r)}
     >
       {[...text].map((ch, i) => {
         const broken = BROKEN[i];
