@@ -54,6 +54,8 @@ const HELP = `available commands:
   blog, projects    jump to a section`;
 
 const USER = 'guest';
+const HISTORY_KEY = 'riwaj.me:bash_history';
+const HISTORY_MAX = 500;
 const HOST = 'riwaj.me';
 
 type Line = { id: number; prompt?: string; text: ReactNode };
@@ -104,6 +106,15 @@ export default function Terminal() {
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // History lives in localStorage so it survives a refresh. Loaded after mount to keep SSR markup stable;
+  // saved only when a command runs (see run) so a mount can never clobber what's stored.
+  useEffect(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+      if (Array.isArray(saved)) setHistory(saved.filter((h): h is string => typeof h === 'string'));
+    } catch {}
+  }, []);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'nearest' });
   }, [lines]);
@@ -128,7 +139,13 @@ export default function Terminal() {
   function run(raw: string) {
     const cmdLine = raw.trim();
     const echo = line(raw, promptFor(cwd));
-    if (cmdLine) setHistory((h) => [...h, cmdLine]);
+    if (cmdLine) {
+      const next = [...history, cmdLine].slice(-HISTORY_MAX);
+      setHistory(next);
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+      } catch {}
+    }
     setHistIdx(-1);
 
     const [cmd = '', ...args] = cmdLine.split(/\s+/);
@@ -180,6 +197,7 @@ export default function Terminal() {
         const node = path && lookup(path);
         if (!node) out.push(`cat: ${args[0]}: no such file or directory`);
         else if (node.kind === 'dir') out.push(`cat: ${args[0]}: is a directory`);
+        else if (node === ROOT.children['.bash_history']) out.push([node.body, ...history].join('\n'));
         else out.push(node.body);
         break;
       }
