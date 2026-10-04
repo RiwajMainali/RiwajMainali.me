@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 // Per-letter neon tube. Each letter lights on its own schedule, a few are
 // "broken" and keep sputtering. Hover or click fixes the sign.
@@ -15,10 +15,28 @@ const delayFor = (i: number) => 0.1 + ((i * 7) % 11) * 0.06;
 
 export default function NeonName({ text }: { text: string }) {
   const [repaired, setRepaired] = useState(false);
+  // Red flicker when the terminal fires `neon:alarm` (wrong sudo password).
+  // Restart on every event so back-to-back failures each flash.
+  const [alarm, setAlarm] = useState(0);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const onAlarm = () => {
+      setAlarm((a) => a + 1);
+      clearTimeout(timer);
+      timer = setTimeout(() => setAlarm(0), 1200);
+    };
+    window.addEventListener('neon:alarm', onAlarm);
+    return () => {
+      window.removeEventListener('neon:alarm', onAlarm);
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
     <h1
-      className={`neon${repaired ? ' repaired' : ''}`}
+      key={alarm ? `alarm-${alarm}` : 'calm'}
+      className={`neon${repaired ? ' repaired' : ''}${alarm ? ' alarm' : ''}`}
       aria-label={text}
       onClick={() => setRepaired((r) => !r)}
     >

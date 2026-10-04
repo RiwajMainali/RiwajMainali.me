@@ -58,7 +58,7 @@ const HISTORY_KEY = 'riwaj.me:bash_history';
 const HISTORY_MAX = 500;
 const HOST = 'riwaj.me';
 
-type Line = { id: number; prompt?: string; text: ReactNode };
+type Line = { id: number; prompt?: string; text: ReactNode; error?: boolean };
 
 function resolve(cwd: string[], target = ''): string[] | null {
   const parts = target.startsWith('/') || target.startsWith('~') ? [] : [...cwd];
@@ -85,7 +85,8 @@ const pathLabel = (cwd: string[]) => (cwd.length ? `~/${cwd.join('/')}` : '~');
 const promptFor = (cwd: string[]) => `${USER}@${HOST}:${pathLabel(cwd)}$`;
 
 let nextId = 0;
-const line = (text: ReactNode, prompt?: string): Line => ({ id: nextId++, text, prompt });
+const line = (text: ReactNode, prompt?: string, error?: boolean): Line => ({ id: nextId++, text, prompt, error });
+const errorLine = (text: ReactNode) => line(text, undefined, true);
 
 const INITIAL: Line[] = [
   line('cat README.txt', promptFor([])),
@@ -124,16 +125,18 @@ export default function Terminal() {
     const tries = (sudoTries ?? 0) + 1;
     const out = [line('', `[sudo] password for ${USER}:`)];
     if (tries < 3) {
-      out.push(line(SUDO_INSULTS[insultIdx % SUDO_INSULTS.length]));
+      out.push(errorLine(SUDO_INSULTS[insultIdx % SUDO_INSULTS.length]));
       setInsultIdx((i) => i + 1);
       setSudoTries(tries);
     } else {
       ROOT.children['.incident_report'] = INCIDENT_REPORT;
-      out.push(line('sudo: 3 incorrect password attempts'));
+      out.push(errorLine('sudo: 3 incorrect password attempts'));
       out.push(line('this incident has been reported. a copy was left in ~ for your records.'));
       setSudoTries(null);
     }
     setLines((ls) => [...ls, ...out]);
+    // The neon sign listens for this and flickers red.
+    window.dispatchEvent(new Event('neon:alarm'));
   }
 
   function run(raw: string) {
@@ -308,8 +311,15 @@ export default function Terminal() {
       className="w-full flex-1 cursor-text font-mono text-sm leading-relaxed sm:text-base"
       onClick={() => inputRef.current?.focus()}
     >
+      {/* Pinned above the scrollback: `clear` never removes it. */}
+      <div className="mb-4">
+        <div>
+          <span className="text-[#1f8f0b]">{promptFor([])} </span>neofetch
+        </div>
+        <pre className="whitespace-pre font-mono">{NEOFETCH}</pre>
+      </div>
       {lines.map((l) => (
-        <div key={l.id} className="whitespace-pre-wrap break-words">
+        <div key={l.id} className={`whitespace-pre-wrap break-words${l.error ? ' text-[#ff3b3b]' : ''}`}>
           {l.prompt && <span className="text-[#1f8f0b]">{l.prompt} </span>}
           {l.text}
         </div>

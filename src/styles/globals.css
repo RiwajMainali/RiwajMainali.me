@@ -57,7 +57,7 @@ body {
     radial-gradient(circle, var(--neon-hot) 0 1.5px, transparent 2.5px),
     radial-gradient(circle, var(--neon-hot) 0 1px, transparent 2px),
     radial-gradient(circle, rgba(216, 255, 204, 0.8) 0 2px, transparent 3px),
-    linear-gradient(90deg, var(--neon) 0%, #7dff5c 50%, var(--neon) 100%);
+    linear-gradient(90deg, var(--neon) 0%, var(--neon-mid, #7dff5c) 50%, var(--neon) 100%);
   background-size:
     37px 23px,
     53px 31px,
@@ -173,5 +173,44 @@ body {
   .neon-letter::after {
     animation: none;
     opacity: 1;
+  }
+}
+
+/* Wrong sudo password: the sign flickers red, then reboots green. */
+.neon.alarm {
+  --neon: #ff2a2a;
+  --neon-mid: #ff6b6b;
+  --neon-hot: #ffd6d6;
+  filter: brightness(1.1) drop-shadow(0 0 2px #ff2a2a) drop-shadow(0 0 14px rgba(255, 42, 42, 0.8))
+    drop-shadow(0 0 34px rgba(255, 42, 42, 0.45));
+  transition: none;
+}
+
+.neon.alarm .neon-letter {
+  -webkit-text-stroke-color: #4a1212;
+}
+
+.neon.alarm .neon-letter::after {
+  opacity: 1;
+  animation:
+    neon-alarm 1.1s steps(1, end) forwards,
+    neon-bubbles 9s linear calc(var(--i) * -0.7s) infinite;
+}
+
+@keyframes neon-alarm {
+  0% { opacity: 1; }
+  8% { opacity: 0.1; }
+  14% { opacity: 1; }
+  22% { opacity: 0.2; }
+  30% { opacity: 1; }
+  38% { opacity: 0; }
+  46% { opacity: 1; }
+  60% { opacity: 0.3; }
+  66%, 100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neon.alarm .neon-letter::after {
+    animation: none;
   }
 }
