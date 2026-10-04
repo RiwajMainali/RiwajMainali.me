@@ -26,8 +26,6 @@ export default function Landing() {
               "
           >
             <div className="flex flex-col">
-              <Link href="/GameOfLife">Game of Life.</Link>
-              <Link href="/aboutMe">About me</Link>
             </div>
           </text>
         </div>
