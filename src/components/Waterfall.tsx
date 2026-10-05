@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 // SDR-style waterfall behind the page, styled after a busy HF band. Rendered
 // near screen resolution; each frame scrolls the image down one row and paints
 // a fresh FFT row on top. Starts after the page is idle so it never competes
-// with first paint.
+// with first paint. The band plan is rolled fresh on every load and stations
+// come and go, so no two visits look the same.
 
 const FPS = 30;
 const PX_PER_BIN = 1.25;
@@ -43,11 +44,45 @@ function keying(text: string): number[] {
 
 const rand = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)]!;
+const shuffle = <T,>(xs: T[]) => {
+  for (let i = xs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [xs[i], xs[j]] = [xs[j]!, xs[i]!];
+  }
+  return xs;
+};
+
+type Mode = 'cw' | 'ssb' | 'ft8' | 'rtty' | 'ofdm' | 'fm' | 'am';
+type Seg = { lo: number; hi: number };
+
+// CW and SSB always; the rest only sometimes, in shuffled order with random
+// widths and gaps. Segments never overlap.
+function bandPlan(): Partial<Record<Mode, Seg>> & { cw: Seg; ssb: Seg } {
+  const weight: Record<Mode, number> = { cw: 3, ssb: 3, ft8: 1, rtty: 0.6, ofdm: 1, fm: 0.5, am: 0.7 };
+  const extras = (['ft8', 'rtty', 'ofdm', 'fm', 'am'] as Mode[]).filter(() => Math.random() < 0.65);
+  const modes = shuffle<Mode>(['cw', 'ssb', ...extras]);
+  const w = modes.map((m) => weight[m] * rand(0.6, 1.4));
+  const gap = modes.map(() => rand(0.05, 0.4));
+  const total = [...w, ...gap].reduce((s, x) => s + x, 0);
+  let x = rand(0.02, 0.05);
+  const span = 0.97 - x;
+  const plan: Partial<Record<Mode, Seg>> = {};
+  modes.forEach((m, i) => {
+    x += (gap[i]! * span) / total;
+    const width = (w[i]! * span) / total;
+    plan[m] = { lo: x, hi: x + width };
+    x += width;
+  });
+  return plan as Partial<Record<Mode, Seg>> & { cw: Seg; ssb: Seg };
+}
+
+type Cw = { f: number; keys: number[]; unit: number; a: number; phase: number; qsb: number; pos: number; drift: number };
 
 function makeSource(bins: number) {
   const B = (f: number) => f * bins; // band fraction -> bin
   let t = 0;
   const row = new Float32Array(bins);
+  const plan = bandPlan();
 
   const gauss = (c: number, w: number, a: number) => {
     const lo = Math.max(0, Math.floor(c - w * 3));
@@ -62,74 +97,132 @@ function makeSource(bins: number) {
   };
   const fade = (period: number, phase: number) => 0.55 + 0.45 * Math.sin(t / period + phase);
 
-  // CW stations, the first one is ours.
-  const calls = ['K5RWJ', 'W1AW', 'JA1XYZ', 'DL2ABC', 'VK3QQ', 'G4FON', '9N1AA'];
-  const cw = [
-    { f: 0.205, text: 'CQ CQ DE RIWAJ K', unit: 3, a: 0.8 },
-    ...Array.from({ length: 5 }, () => ({
-      f: rand(0.03, 0.3),
-      text: `CQ CQ DE ${pick(calls)} ${pick(calls)} K`,
-      unit: Math.floor(rand(2, 5)),
-      a: rand(0.3, 0.65),
-    })),
-  ].map((s) => ({ ...s, keys: keying(s.text), phase: rand(0, 6), off: Math.floor(rand(0, 400)) }));
+  // Band conditions wander over minutes; everything except our station rides on it.
+  let prop = rand(0.6, 1.1);
+  let propVel = 0;
 
-  // SSB voice: talk spurts made of shifting formants.
-  const ssb = Array.from({ length: 4 }, () => ({
-    lo: rand(0.33, 0.55),
+  // CW: ours keeps calling forever; the others finish a message, then either
+  // call again or vanish and get replaced by someone new elsewhere.
+  const CW = plan.cw;
+  const homeF = rand(CW.lo + (CW.hi - CW.lo) * 0.2, CW.hi - (CW.hi - CW.lo) * 0.2);
+  const home: Cw = { f: homeF, keys: keying('CQ CQ DE RIWAJ K'), unit: 3, a: 0.8, phase: 0, qsb: 140, pos: 0, drift: 0 };
+  const calls = ['K5RWJ', 'W1AW', 'JA1XYZ', 'DL2ABC', 'VK3QQ', 'G4FON', '9N1AA', 'ZL2RX', 'PY2XB', 'OH8K', 'EA7HG', 'UA9CDE'];
+  const msgs = [
+    () => `CQ CQ DE ${pick(calls)} ${pick(calls)} K`,
+    () => `CQ TEST ${pick(calls)}`,
+    () => `${pick(calls)} DE ${pick(calls)} 599 TU`,
+    () => `QRZ DE ${pick(calls)}`,
+    () => `TNX FER QSO 73 SK`,
+  ];
+  const respawnCw = (s: Cw) => {
+    let f = 0;
+    do f = rand(CW.lo, CW.hi);
+    while (Math.abs(f - homeF) < 0.008);
+    s.f = f;
+    s.keys = keying(pick(msgs)());
+    s.unit = Math.floor(rand(2, 6));
+    s.a = rand(0.25, 0.7);
+    s.qsb = rand(60, 260);
+    s.drift = Math.random() < 0.2 ? rand(-2, 2) * 1e-5 : 0; // the odd chirpy old rig
+    s.pos = -Math.floor(rand(0, 300));
+  };
+  const cw = Array.from({ length: Math.floor(rand(3, 10)) }, () => {
+    const s = { phase: rand(0, 6) } as Cw;
+    respawnCw(s);
+    s.pos = Math.floor(rand(0, 400));
+    return s;
+  });
+
+  // SSB voice: talk spurts of shifting formants; between overs a station may QSY.
+  const SSB = plan.ssb;
+  const ssbLo = () => rand(SSB.lo, Math.max(SSB.lo, SSB.hi - 0.02));
+  const ssb = Array.from({ length: Math.floor(rand(2, 7)) }, () => ({
+    lo: ssbLo(),
     width: rand(0.012, 0.02),
     talking: false,
-    left: 0,
+    left: Math.floor(rand(0, 120)),
     syl: 0,
     formants: [0.2, 0.45, 0.7],
     a: rand(0.35, 0.6),
   }));
 
-  // FT8 sub-band: 15 s slots of 8-FSK stations.
-  const FT8_LO = 0.6;
-  const FT8_HI = 0.68;
+  // FT8 sub-band: 15 s slots of 8-FSK stations, busier when the band is open.
   const SLOT = 15 * FPS;
   let ft8: { c: number; a: number; tones: number[] }[] = [];
 
-  // RTTY: two tones 170 Hz apart.
-  const rtty = { c: 0.74, shift: 0.006, left: 0, on: false };
+  // RTTY: pairs of tones 170 Hz apart.
+  const rtty = plan.rtty
+    ? Array.from({ length: Math.floor(rand(1, 4)) }, () => ({
+        c: rand(plan.rtty!.lo, Math.max(plan.rtty!.lo, plan.rtty!.hi - 0.006)),
+        left: Math.floor(rand(0, 200)),
+        on: false,
+        phase: rand(0, 6),
+      }))
+    : [];
 
   // Wideband OFDM data with TDMA-style bursts.
-  const ofdm = { lo: 0.82, hi: 0.9, on: false, left: 0 };
+  const ofdm = { on: false, left: 0 };
 
-  const birdies = Array.from({ length: 6 }, () => ({ c: rand(0, 1), a: rand(0.08, 0.16) }));
+  // AM broadcaster: steady carrier with fading audio sidebands.
+  const am = plan.am && { c: (plan.am.lo + plan.am.hi) / 2, w: Math.min(0.012, (plan.am.hi - plan.am.lo) / 2.5) };
+
+  const birdies = Array.from({ length: Math.floor(rand(3, 9)) }, () => ({ c: rand(0, 1), a: rand(0.08, 0.16) }));
+  const drifter = Math.random() < 0.5 ? { c: rand(0.05, 0.95), v: rand(-4, 4) * 1e-5, a: rand(0.2, 0.4) } : null;
   let hop = { c: 0.5, left: 0 };
+  const hopDuty = Math.floor(rand(80, 350));
   let sweep = -1;
+  let radar = { left: 0, lo: 0 };
   let floorDrift = 0;
 
   return function nextRow(): Float32Array {
     t++;
     floorDrift += (Math.random() - 0.5) * 0.02;
     floorDrift *= 0.98;
+    propVel = (propVel + (Math.random() - 0.5) * 4e-4) * 0.995;
+    prop += propVel;
+    if (prop < 0.35 || prop > 1.2) {
+      prop = Math.min(1.2, Math.max(0.35, prop));
+      propVel *= -0.5;
+    }
 
     // Speckled noise floor (exponential like FFT bin power), with band edges rolled off.
+    // Now and then a lightning crash lights up the whole row.
+    const crash = Math.random() < 0.004 ? rand(0.1, 0.3) : 0;
     for (let i = 0; i < bins; i++) {
       const edge = Math.sin((i / bins) * Math.PI);
-      row[i] = (0.07 + floorDrift * 0.05 - Math.log(Math.random() + 1e-6) * 0.045) * (0.6 + 0.4 * edge);
+      row[i] = (0.055 + crash + prop * 0.02 + floorDrift * 0.05 - Math.log(Math.random() + 1e-6) * 0.045) * (0.6 + 0.4 * edge);
     }
 
     for (const b of birdies) gauss(B(b.c), 0.6, b.a);
 
+    if (home.keys[Math.floor(t / home.unit) % home.keys.length]) gauss(B(home.f), 0.8, home.a * fade(140, 0));
     for (const s of cw) {
-      if (s.keys[Math.floor((t + s.off) / s.unit) % s.keys.length]) gauss(B(s.f), 0.8, s.a * fade(140, s.phase));
+      const k = Math.floor(++s.pos / s.unit);
+      if (k >= s.keys.length) {
+        if (Math.random() < 0.6) respawnCw(s);
+        else s.pos = -Math.floor(rand(30, 200));
+        continue;
+      }
+      s.f += s.drift;
+      if (k >= 0 && s.keys[k]) gauss(B(s.f), 0.8, s.a * prop * fade(s.qsb, s.phase));
     }
 
     for (const v of ssb) {
       if (v.left-- <= 0) {
         v.talking = !v.talking;
         v.left = v.talking ? Math.floor(rand(60, 240)) : Math.floor(rand(20, 150));
+        if (!v.talking && Math.random() < 0.25) {
+          v.lo = ssbLo();
+          v.a = rand(0.3, 0.65);
+          v.left = Math.floor(rand(100, 500));
+        }
       }
       if (!v.talking) continue;
       if (v.syl-- <= 0) {
         v.syl = Math.floor(rand(3, 9));
         v.formants = v.formants.map((p) => Math.min(0.9, Math.max(0.08, p + rand(-0.12, 0.12))));
       }
-      const loud = v.a * (0.4 + Math.random() * 0.6) * (v.syl > 1 ? 1 : 0.3);
+      const loud = v.a * prop * (0.4 + Math.random() * 0.6) * (v.syl > 1 ? 1 : 0.3);
       const lo = B(v.lo);
       const w = B(v.width);
       block(lo, lo + w, loud * 0.25, 0.8);
@@ -137,39 +230,64 @@ function makeSource(bins: number) {
     }
 
     // FT8: new set of stations each slot, transmitting for ~12.6 s.
-    const slotT = t % SLOT;
-    if (slotT === 0) {
-      ft8 = Array.from({ length: Math.floor(rand(5, 11)) }, () => ({
-        c: rand(FT8_LO, FT8_HI - 0.01),
-        a: rand(0.3, 0.75),
-        tones: Array.from({ length: 79 }, () => Math.floor(Math.random() * 8)),
-      }));
-    }
-    if (slotT > 15 && slotT < 15 + 79 * 5) {
-      const sym = Math.floor((slotT - 15) / 5);
-      for (const s of ft8) gauss(B(s.c) + s.tones[sym]! * (B(0.0012)), 0.7, s.a);
+    if (plan.ft8) {
+      const { lo, hi } = plan.ft8;
+      const slotT = t % SLOT;
+      if (slotT === 0) {
+        ft8 = Array.from({ length: Math.floor(rand(2, 5 + prop * 8)) }, () => ({
+          c: rand(lo, Math.max(lo, hi - 0.01)),
+          a: rand(0.3, 0.75),
+          tones: Array.from({ length: 79 }, () => Math.floor(Math.random() * 8)),
+        }));
+      }
+      if (slotT > 15 && slotT < 15 + 79 * 5) {
+        const sym = Math.floor((slotT - 15) / 5);
+        for (const s of ft8) gauss(B(s.c) + s.tones[sym]! * B(0.0012), 0.7, s.a * prop);
+      }
     }
 
     // RTTY bursts.
-    if (rtty.left-- <= 0) {
-      rtty.on = !rtty.on;
-      rtty.left = Math.floor(rtty.on ? rand(120, 400) : rand(60, 300));
+    for (const r of rtty) {
+      if (r.left-- <= 0) {
+        r.on = !r.on;
+        r.left = Math.floor(r.on ? rand(120, 400) : rand(60, 300));
+      }
+      if (r.on) gauss(B(r.c) + (Math.random() < 0.5 ? 0 : B(0.006)), 0.8, 0.6 * prop * fade(90, r.phase));
     }
-    if (rtty.on) gauss(B(rtty.c) + (Math.random() < 0.5 ? 0 : B(rtty.shift)), 0.8, 0.6 * fade(90, 1));
 
     // OFDM: flat-topped grainy block, bursting.
-    if (ofdm.left-- <= 0) {
-      ofdm.on = !ofdm.on;
-      ofdm.left = Math.floor(ofdm.on ? rand(8, 90) : rand(4, 60));
+    if (plan.ofdm) {
+      if (ofdm.left-- <= 0) {
+        ofdm.on = !ofdm.on;
+        ofdm.left = Math.floor(ofdm.on ? rand(8, 90) : rand(4, 60));
+      }
+      if (ofdm.on) block(B(plan.ofdm.lo), B(plan.ofdm.hi), 0.16 * fade(60, 2), 0.9);
     }
-    if (ofdm.on) block(B(ofdm.lo), B(ofdm.hi), 0.16 * fade(60, 2), 0.9);
 
     // Wideband FM-ish carrier wobbling with audio.
-    gauss(B(0.95) + Math.sin(t / 9) * B(0.004) + Math.sin(t / 3.7) * B(0.002), B(0.006), 0.3);
+    if (plan.fm) {
+      const c = (plan.fm.lo + plan.fm.hi) / 2;
+      const w = Math.min(0.006, (plan.fm.hi - plan.fm.lo) / 4);
+      gauss(B(c) + Math.sin(t / 9) * B(w * 0.7) + Math.sin(t / 3.7) * B(w * 0.35), B(w), 0.3);
+    }
+
+    if (am) {
+      const audio = prop * (0.5 + Math.random() * 0.5) * fade(200, 1);
+      gauss(B(am.c), 0.9, 0.7 * prop);
+      block(B(am.c - am.w), B(am.c) - 1, audio * 0.18, 0.7);
+      block(B(am.c) + 1, B(am.c + am.w), audio * 0.18, 0.7);
+    }
+
+    // Unstable carrier slowly walking across the band.
+    if (drifter) {
+      drifter.c += drifter.v;
+      if (drifter.c < 0.02 || drifter.c > 0.98) drifter.v *= -1;
+      gauss(B(drifter.c), 0.7, drifter.a * fade(300, 0));
+    }
 
     // Frequency hopper.
     if (hop.left-- <= 0) hop = { c: rand(0.05, 0.95), left: Math.floor(rand(5, 10)) };
-    if (t % 500 < 200) gauss(B(hop.c), B(0.003), 0.45);
+    if (t % 500 < hopDuty) gauss(B(hop.c), B(0.003), 0.45);
 
     // Occasional chirp sweeping the whole band.
     if (sweep < 0 && Math.random() < 0.0015) sweep = 0;
@@ -178,6 +296,10 @@ function makeSource(bins: number) {
       sweep += bins / 120;
       if (sweep > bins) sweep = -1;
     }
+
+    // Over-the-horizon radar: a wide pulsed comb that parks for a few seconds.
+    if (radar.left <= 0 && Math.random() < 0.0008) radar = { left: Math.floor(rand(90, 300)), lo: rand(0.05, 0.85) };
+    if (radar.left > 0 && radar.left-- % 3 === 0) block(B(radar.lo), B(radar.lo + 0.06), 0.2, 0.6);
 
     return row;
   };
