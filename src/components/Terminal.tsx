@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { mhz, sdr, SPEED_MAX, SPEED_MIN } from '~/lib/sdr';
 
 type File = { kind: 'file'; body: string };
 type Dir = { kind: 'dir'; children: Record<string, Node> };
@@ -51,7 +52,26 @@ const HELP = `available commands:
   cd <dir>          change directory
   cat <file>        print a file
   pwd, whoami, date, echo, history, clear
-  blog, projects    jump to a section`;
+  blog, projects    jump to a section
+  sdr [status]      what's on air in the background
+  sdr speed <0.5-4> waterfall speed: slower is sharper, faster is blurrier`;
+
+function sdrStatus(): string {
+  const s = sdr.getSpeed();
+  const rbw = sdr.rbwHz ? ` · RBW ${Math.round(sdr.rbwHz)} Hz` : '';
+  const rows = sdr.onAir
+    .map((x) => ({ at: x.lo ?? 2, line: `  ${(x.lo === null ? 'wideband' : `${mhz(x.lo)}-${mhz(x.hi)}`).padEnd(15)} ${x.label}` }))
+    .concat(sdr.home === null ? [] : [{ at: sdr.home, line: `  ${mhz(sdr.home).padEnd(15)} CW · CQ DE RIWAJ (that's me)` }])
+    .sort((a, b) => a.at - b.at)
+    .map((r) => r.line);
+  return [`speed ${s}x${rbw} · ${mhz(0)}-${mhz(1)} MHz`, rows.length ? 'on air:' : 'receiver warming up...', ...rows].join('\n');
+}
+
+// Accepts 2, 2x, 0.5, 1/2.
+function parseSpeed(arg: string): number {
+  const [num = '', den] = arg.replace(/x$/i, '').split('/');
+  return den === undefined ? Number(num) : Number(num) / Number(den);
+}
 
 const USER = 'guest';
 const HISTORY_KEY = 'riwaj.me:bash_history';
@@ -255,6 +275,30 @@ export default function Terminal() {
       case 'vi':
         out.push("you'd never leave. config lives at github.com/RiwajMainali/nvim");
         break;
+      case 'sdr': {
+        const [sub, val] = args;
+        if (!sub || sub === 'status') out.push(sdrStatus());
+        else if (sub !== 'speed') out.push(`sdr: unknown command '${sub}'. usage: sdr [status] | sdr speed <${SPEED_MIN}-${SPEED_MAX}>`);
+        else if (!val) out.push(`speed ${sdr.getSpeed()}x. usage: sdr speed <${SPEED_MIN}-${SPEED_MAX}>`);
+        else {
+          const s = parseSpeed(val);
+          if (!Number.isFinite(s) || s < SPEED_MIN || s > SPEED_MAX) {
+            out.push(`sdr: speed must be a number between ${SPEED_MIN} and ${SPEED_MAX}, got '${val}'`);
+            break;
+          }
+          const before = sdr.getSpeed();
+          sdr.setSpeed(s);
+          const rbw = sdr.rbwHz ? ` (RBW ${Math.round(sdr.rbwHz)} Hz)` : '';
+          out.push(
+            s === before
+              ? `speed already ${s}x`
+              : s < before
+                ? `speed ${s}x${rbw}. slower scroll, finer bins: sharper.`
+                : `speed ${s}x${rbw}. faster scroll, coarser bins: blurrier.`,
+          );
+        }
+        break;
+      }
       case 'base64':
         out.push('almost. try piping it somewhere you control.');
         break;
