@@ -58,7 +58,7 @@ type Seg = { lo: number; hi: number };
 // CW and SSB always; the rest only sometimes, in shuffled order with random
 // widths and gaps. Segments never overlap.
 function bandPlan(): Partial<Record<Mode, Seg>> & { cw: Seg; ssb: Seg } {
-  const weight: Record<Mode, number> = { cw: 3, ssb: 3, ft8: 1, rtty: 0.6, ofdm: 2.2, fm: 0.5, am: 0.7 };
+  const weight: Record<Mode, number> = { cw: 3, ssb: 3, ft8: 1, rtty: 0.6, ofdm: 0.7, fm: 0.5, am: 0.7 };
   const extras = (['ft8', 'rtty', 'fm', 'am'] as Mode[]).filter(() => Math.random() < 0.65);
   const modes = shuffle<Mode>(['cw', 'ssb', 'ofdm', ...extras]);
   const w = modes.map((m) => weight[m] * (m === 'ofdm' ? rand(0.9, 1.2) : rand(0.6, 1.4)));
@@ -160,10 +160,12 @@ function makeSource(bins: number) {
       }))
     : [];
 
-  // Wideband OFDM data in fixed TDMA slots: short enough that a screen holds a
-  // dozen-plus bursts, so the rhythm reads as a pattern, not noise.
-  const ofdmBurst = Math.floor(rand(14, 24));
-  const ofdmPeriod = ofdmBurst + Math.floor(rand(8, 16));
+  // Wideband OFDM data in fixed TDMA frames: a group of short bursts, then a
+  // long pause. A screen holds several frames, so the rhythm reads as a pattern.
+  const ofdmBurst = Math.floor(rand(6, 10));
+  const ofdmSlot = ofdmBurst + Math.floor(rand(4, 7));
+  const ofdmGroup = ofdmSlot * Math.floor(rand(3, 6));
+  const ofdmFrame = ofdmGroup + Math.floor(rand(35, 60));
 
   // AM broadcaster: steady carrier with fading audio sidebands.
   const am = plan.am && { c: (plan.am.lo + plan.am.hi) / 2, w: Math.min(0.012, (plan.am.hi - plan.am.lo) / 2.5) };
@@ -257,10 +259,11 @@ function makeSource(bins: number) {
       if (r.on) gauss(B(r.c) + (Math.random() < 0.5 ? 0 : B(0.006)), 0.8, 0.6 * prop * fade(90, r.phase));
     }
 
-    // OFDM: flat-topped block keyed on the slot clock, bright preamble leading each burst.
+    // OFDM: flat-topped block keyed on the frame clock, bright preamble leading each burst.
     if (plan.ofdm) {
-      const k = t % ofdmPeriod;
-      if (k < ofdmBurst) block(B(plan.ofdm.lo), B(plan.ofdm.hi), (k < 2 ? 0.45 : 0.24) * (0.85 + 0.15 * prop), 0.3);
+      const f = t % ofdmFrame;
+      const k = f % ofdmSlot;
+      if (f < ofdmGroup && k < ofdmBurst) block(B(plan.ofdm.lo), B(plan.ofdm.hi), (k < 2 ? 0.45 : 0.24) * (0.85 + 0.15 * prop), 0.3);
     }
 
     // Wideband FM-ish carrier wobbling with audio.
