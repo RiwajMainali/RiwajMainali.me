@@ -52,28 +52,36 @@ const shuffle = <T,>(xs: T[]) => {
   return xs;
 };
 
-type Mode = 'cw' | 'ssb' | 'ft8' | 'rtty' | 'ofdm' | 'fm' | 'am';
+// Band segments with their own width ranges (band fractions); 'home' is just
+// room for our own CW station when no CW segment is on air.
+const WIDTH = {
+  cw: [0.12, 0.28], ssb: [0.12, 0.28], ft8: [0.05, 0.09], rtty: [0.03, 0.06],
+  ofdm: [0.05, 0.1], fm: [0.03, 0.05], am: [0.04, 0.07], home: [0.015, 0.025],
+} as const;
+type Mode = keyof typeof WIDTH;
+type Kind = Exclude<Mode, 'home'> | 'hop' | 'drift' | 'radar' | 'chirp';
 type Seg = { lo: number; hi: number };
 
-// CW and SSB always; the rest only sometimes, in shuffled order with random
-// widths and gaps. Segments never overlap.
-function bandPlan(): Partial<Record<Mode, Seg>> & { cw: Seg; ssb: Seg } {
-  const weight: Record<Mode, number> = { cw: 3, ssb: 3, ft8: 1, rtty: 0.6, ofdm: 0.7, fm: 0.5, am: 0.7 };
-  const extras = (['ft8', 'rtty', 'fm', 'am'] as Mode[]).filter(() => Math.random() < 0.65);
-  const modes = shuffle<Mode>(['cw', 'ssb', 'ofdm', ...extras]);
-  const w = modes.map((m) => weight[m] * (m === 'ofdm' ? rand(0.9, 1.2) : rand(0.6, 1.4)));
-  const gap = modes.map(() => rand(0.05, 0.4));
-  const total = [...w, ...gap].reduce((s, x) => s + x, 0);
-  let x = rand(0.02, 0.05);
-  const span = 0.97 - x;
-  const plan: Partial<Record<Mode, Seg>> = {};
+// Each load puts a random 4-7 of the 11 signal kinds on air, the rest of the
+// band is just noise. Segments land in shuffled order with random gaps and
+// never overlap.
+function bandPlan() {
+  const all: Kind[] = ['cw', 'ssb', 'ft8', 'rtty', 'ofdm', 'fm', 'am', 'hop', 'drift', 'radar', 'chirp'];
+  const on = new Set(shuffle(all).slice(0, Math.floor(rand(4, 8))));
+  const modes = shuffle([...on, ...(on.has('cw') ? [] : ['home' as const])].filter((k): k is Mode => k in WIDTH));
+  let w = modes.map((m) => rand(WIDTH[m][0], WIDTH[m][1]));
+  const used = w.reduce((s, x) => s + x, 0);
+  if (used > 0.85) w = w.map((x) => (x * 0.85) / used);
+  const gap = [...modes, null].map(() => Math.random());
+  const free = (0.94 - w.reduce((s, x) => s + x, 0)) / gap.reduce((s, x) => s + x, 0);
+  const seg: Partial<Record<Mode, Seg>> = {};
+  let x = 0.03;
   modes.forEach((m, i) => {
-    x += (gap[i]! * span) / total;
-    const width = (w[i]! * span) / total;
-    plan[m] = { lo: x, hi: x + width };
-    x += width;
+    x += gap[i]! * free;
+    seg[m] = { lo: x, hi: x + w[i]! };
+    x += w[i]!;
   });
-  return plan as Partial<Record<Mode, Seg>> & { cw: Seg; ssb: Seg };
+  return { seg, on };
 }
 
 type Cw = { f: number; keys: number[]; unit: number; a: number; phase: number; qsb: number; pos: number; drift: number };
@@ -82,7 +90,7 @@ function makeSource(bins: number) {
   const B = (f: number) => f * bins; // band fraction -> bin
   let t = 0;
   const row = new Float32Array(bins);
-  const plan = bandPlan();
+  const { seg: plan, on } = bandPlan();
 
   const gauss = (c: number, w: number, a: number) => {
     const lo = Math.max(0, Math.floor(c - w * 3));
@@ -104,7 +112,8 @@ function makeSource(bins: number) {
   // CW: ours keeps calling forever; the others finish a message, then either
   // call again or vanish and get replaced by someone new elsewhere.
   const CW = plan.cw;
-  const homeF = rand(CW.lo + (CW.hi - CW.lo) * 0.2, CW.hi - (CW.hi - CW.lo) * 0.2);
+  const H = CW ?? plan.home!;
+  const homeF = rand(H.lo + (H.hi - H.lo) * 0.2, H.hi - (H.hi - H.lo) * 0.2);
   const home: Cw = { f: homeF, keys: keying('CQ CQ DE RIWAJ K'), unit: 3, a: 0.8, phase: 0, qsb: 140, pos: 0, drift: 0 };
   const calls = ['K5RWJ', 'W1AW', 'JA1XYZ', 'DL2ABC', 'VK3QQ', 'G4FON', '9N1AA', 'ZL2RX', 'PY2XB', 'OH8K', 'EA7HG', 'UA9CDE'];
   const msgs = [
@@ -116,7 +125,7 @@ function makeSource(bins: number) {
   ];
   const respawnCw = (s: Cw) => {
     let f = 0;
-    do f = rand(CW.lo, CW.hi);
+    do f = rand(CW!.lo, CW!.hi);
     while (Math.abs(f - homeF) < 0.008);
     s.f = f;
     s.keys = keying(pick(msgs)());
@@ -126,7 +135,7 @@ function makeSource(bins: number) {
     s.drift = Math.random() < 0.2 ? rand(-2, 2) * 1e-5 : 0; // the odd chirpy old rig
     s.pos = -Math.floor(rand(0, 300));
   };
-  const cw = Array.from({ length: Math.floor(rand(3, 10)) }, () => {
+  const cw = Array.from({ length: CW ? Math.floor(rand(3, 10)) : 0 }, () => {
     const s = { phase: rand(0, 6) } as Cw;
     respawnCw(s);
     s.pos = Math.floor(rand(0, 400));
@@ -135,8 +144,8 @@ function makeSource(bins: number) {
 
   // SSB voice: talk spurts of shifting formants; between overs a station may QSY.
   const SSB = plan.ssb;
-  const ssbLo = () => rand(SSB.lo, Math.max(SSB.lo, SSB.hi - 0.02));
-  const ssb = Array.from({ length: Math.floor(rand(2, 7)) }, () => ({
+  const ssbLo = () => rand(SSB!.lo, Math.max(SSB!.lo, SSB!.hi - 0.02));
+  const ssb = Array.from({ length: SSB ? Math.floor(rand(2, 7)) : 0 }, () => ({
     lo: ssbLo(),
     width: rand(0.012, 0.02),
     talking: false,
@@ -160,18 +169,22 @@ function makeSource(bins: number) {
       }))
     : [];
 
-  // Wideband OFDM data in fixed TDMA frames: a group of short bursts, then a
-  // long pause. A screen holds several frames, so the rhythm reads as a pattern.
-  const ofdmBurst = Math.floor(rand(6, 10));
-  const ofdmSlot = ofdmBurst + Math.floor(rand(4, 7));
-  const ofdmGroup = ofdmSlot * Math.floor(rand(3, 6));
-  const ofdmFrame = ofdmGroup + Math.floor(rand(35, 60));
+  // Wideband OFDM data in a fixed TDMA frame: a group of uneven bursts, then a
+  // long pause, repeating. Short enough that a screen holds several frames, so
+  // the rhythm reads as a pattern. 2 marks the bright preamble rows.
+  const ofdmFrame: number[] = [];
+  for (let n = Math.floor(rand(3, 7)); n > 0; n--) {
+    const len = Math.floor(rand(3, 15));
+    for (let i = 0; i < len; i++) ofdmFrame.push(i < 2 ? 2 : 1);
+    for (let i = Math.floor(rand(3, 8)); i > 0; i--) ofdmFrame.push(0);
+  }
+  for (let i = Math.floor(rand(30, 60)); i > 0; i--) ofdmFrame.push(0);
 
   // AM broadcaster: steady carrier with fading audio sidebands.
   const am = plan.am && { c: (plan.am.lo + plan.am.hi) / 2, w: Math.min(0.012, (plan.am.hi - plan.am.lo) / 2.5) };
 
-  const birdies = Array.from({ length: Math.floor(rand(3, 9)) }, () => ({ c: rand(0, 1), a: rand(0.08, 0.16) }));
-  const drifter = Math.random() < 0.5 ? { c: rand(0.05, 0.95), v: rand(-4, 4) * 1e-5, a: rand(0.2, 0.4) } : null;
+  const birdies = Array.from({ length: Math.floor(rand(0, 9)) }, () => ({ c: rand(0, 1), a: rand(0.08, 0.16) }));
+  const drifter = on.has('drift') ? { c: rand(0.05, 0.95), v: rand(-4, 4) * 1e-5, a: rand(0.2, 0.4) } : null;
   let hop = { c: 0.5, left: 0 };
   const hopDuty = Math.floor(rand(80, 350));
   let sweep = -1;
@@ -261,9 +274,8 @@ function makeSource(bins: number) {
 
     // OFDM: flat-topped block keyed on the frame clock, bright preamble leading each burst.
     if (plan.ofdm) {
-      const f = t % ofdmFrame;
-      const k = f % ofdmSlot;
-      if (f < ofdmGroup && k < ofdmBurst) block(B(plan.ofdm.lo), B(plan.ofdm.hi), (k < 2 ? 0.45 : 0.24) * (0.85 + 0.15 * prop), 0.3);
+      const k = ofdmFrame[t % ofdmFrame.length]!;
+      if (k) block(B(plan.ofdm.lo), B(plan.ofdm.hi), (k === 2 ? 0.45 : 0.24) * (0.85 + 0.15 * prop), 0.3);
     }
 
     // Wideband FM-ish carrier wobbling with audio.
@@ -288,11 +300,13 @@ function makeSource(bins: number) {
     }
 
     // Frequency hopper.
-    if (hop.left-- <= 0) hop = { c: rand(0.05, 0.95), left: Math.floor(rand(5, 10)) };
-    if (t % 500 < hopDuty) gauss(B(hop.c), B(0.003), 0.45);
+    if (on.has('hop')) {
+      if (hop.left-- <= 0) hop = { c: rand(0.05, 0.95), left: Math.floor(rand(5, 10)) };
+      if (t % 500 < hopDuty) gauss(B(hop.c), B(0.003), 0.45);
+    }
 
     // Occasional chirp sweeping the whole band.
-    if (sweep < 0 && Math.random() < 0.0015) sweep = 0;
+    if (on.has('chirp') && sweep < 0 && Math.random() < 0.005) sweep = 0;
     if (sweep >= 0) {
       gauss(sweep, 1.5, 0.45);
       sweep += bins / 120;
@@ -300,7 +314,7 @@ function makeSource(bins: number) {
     }
 
     // Over-the-horizon radar: a wide pulsed comb that parks for a few seconds.
-    if (radar.left <= 0 && Math.random() < 0.0008) radar = { left: Math.floor(rand(90, 300)), lo: rand(0.05, 0.85) };
+    if (on.has('radar') && radar.left <= 0 && Math.random() < 0.004) radar = { left: Math.floor(rand(90, 300)), lo: rand(0.05, 0.85) };
     if (radar.left > 0 && radar.left-- % 3 === 0) block(B(radar.lo), B(radar.lo + 0.06), 0.2, 0.6);
 
     return row;
