@@ -626,7 +626,7 @@ export default function Waterfall() {
       let bins = 0;
       let img = ctx.createImageData(1, 1);
       let acc = new Float32Array(1);
-      let debt = 0;
+      let debt = 1; // >= 1 forces a fresh tick before the next row, so no row paints from an empty buffer
 
       // New bin count, keeping the history on screen by stretching it across.
       const resize = () => {
@@ -646,6 +646,7 @@ export default function Waterfall() {
         img = ctx.createImageData(n, 1);
         acc = new Float32Array(n);
         src.resize(n);
+        debt = Math.max(debt, 1);
       };
       resize();
 
