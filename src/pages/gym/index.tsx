@@ -2,7 +2,13 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../lib/gym/client';
-import type { Attachment, Entry, Exercise, SetLog } from '../../lib/gym/types';
+import type {
+  Attachment,
+  Entry,
+  Exercise,
+  DraftSet,
+} from '../../lib/gym/types';
+import { unitLabel } from '../../lib/gym/types';
 import { progression } from '../../lib/gym/progress';
 import { useSyncedDraft } from '../../components/gym/useSyncedDraft';
 import HistoryChart from '../../components/gym/HistoryChart';
@@ -179,7 +185,7 @@ export default function Gym() {
       setBusy(false);
     }
   }
-  function updateSet(index: number, update: Partial<SetLog>) {
+  function updateSet(index: number, update: Partial<DraftSet>) {
     change((d) => ({
       ...d,
       sets: d.sets.map((s, i) => (i === index ? { ...s, ...update } : s)),
@@ -630,18 +636,21 @@ export default function Gym() {
                                 sets: d.sets.map((s) => ({
                                   ...s,
                                   weight:
-                                    Math.round(s.weight * factor * 100) / 100,
+                                    s.weight === null
+                                      ? null
+                                      : Math.round(s.weight * factor * 100) /
+                                        100,
                                 })),
                               };
                             });
                           }}
                         >
-                          <option value="lb">lb</option>
+                          <option value="lb">lbs</option>
                           <option value="kg">kg</option>
                         </select>
                       </label>
                       <label>
-                        Bodyweight ({draft.unit})
+                        Bodyweight ({unitLabel(draft.unit)})
                         <input
                           type="number"
                           inputMode="decimal"
@@ -662,7 +671,7 @@ export default function Gym() {
                     </div>
                     <div className="gym-set-labels">
                       <span>Set</span>
-                      <span>{draft.unit}</span>
+                      <span>{unitLabel(draft.unit)}</span>
                       <span>Reps</span>
                       <span>RPE</span>
                       <span>Warmup</span>
@@ -672,15 +681,24 @@ export default function Gym() {
                       <div className="gym-set" key={i}>
                         <span>{i + 1}</span>
                         <input
-                          aria-label={`Set ${i + 1} weight in ${draft.unit}`}
+                          aria-label={`Set ${i + 1} weight in ${unitLabel(
+                            draft.unit
+                          )}`}
                           type="number"
                           inputMode="decimal"
                           min="0"
                           max="3000"
                           step="0.25"
-                          value={s.weight}
+                          value={s.weight ?? ''}
+                          required
+                          onFocus={(e) => e.currentTarget.select()}
                           onChange={(e) =>
-                            updateSet(i, { weight: Number(e.target.value) })
+                            updateSet(i, {
+                              weight:
+                                e.target.value === ''
+                                  ? null
+                                  : Number(e.target.value),
+                            })
                           }
                         />
                         <input
@@ -689,9 +707,16 @@ export default function Gym() {
                           inputMode="numeric"
                           min="1"
                           max="1000"
-                          value={s.reps}
+                          value={s.reps ?? ''}
+                          required
+                          onFocus={(e) => e.currentTarget.select()}
                           onChange={(e) =>
-                            updateSet(i, { reps: Number(e.target.value) })
+                            updateSet(i, {
+                              reps:
+                                e.target.value === ''
+                                  ? null
+                                  : Number(e.target.value),
+                            })
                           }
                         />
                         <input
@@ -745,8 +770,9 @@ export default function Gym() {
                       + Add set
                     </button>
                     <p className="gym-muted">
-                      RPE 10 = no reps left, 9 ≈ 1 left, 8 ≈ 2 left. Leave blank
-                      if unknown.
+                      Weight and reps are required to save; use 0 for no
+                      external weight. RPE 10 = no reps left, 9 ≈ 1 left, 8 ≈ 2
+                      left. Leave blank if unknown.
                     </p>
                     <label>
                       Session notes
@@ -764,7 +790,13 @@ export default function Gym() {
                     </button>
                     <button
                       className="gym-primary"
-                      disabled={!draft.exerciseId || draftSync.conflict}
+                      disabled={
+                        !draft.exerciseId ||
+                        draftSync.conflict ||
+                        draft.sets.some(
+                          (s) => s.weight === null || s.reps === null
+                        )
+                      }
                       onClick={() => void act(save)}
                     >
                       {busy ? 'Saving…' : 'Save workout to history'}
@@ -782,8 +814,9 @@ export default function Gym() {
                       <p>{advice.message}</p>
                       {advice.nextReps !== null && (
                         <p className="gym-target">
-                          {advice.nextWeight} {advice.unit} × {advice.nextReps}{' '}
-                          reps
+                          {advice.nextWeight}{' '}
+                          {unitLabel(advice.unit as 'lb' | 'kg')} ×{' '}
+                          {advice.nextReps} reps
                         </p>
                       )}
                       {advice.weeklyPercent !== null && (
@@ -880,7 +913,7 @@ export default function Gym() {
                     {entry.sets
                       .map(
                         (s) =>
-                          `${s.weight} ${entry.unit} × ${s.reps}${
+                          `${s.weight} ${unitLabel(entry.unit)} × ${s.reps}${
                             s.rpe === null ? '' : ` @${s.rpe}`
                           }${s.warmup ? ' (warmup)' : ''}`
                       )

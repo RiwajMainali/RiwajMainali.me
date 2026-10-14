@@ -177,3 +177,16 @@ test('alias-aware custom additions reuse one existing exercise instead of splitt
  assert.equal(db().prepare('SELECT count(*) n FROM exercises').get().n,before);
  const result=await request('exercises?q=BTN%20OHP');assert.ok(result.payload.suggested.length>0);assert.equal(result.payload.aliasCount,206);
 });
+
+test('empty weight and reps stay blank in synced drafts but cannot become completed entries',async()=>{
+ const prior=(await request('draft')).payload;
+ const draft={...emptyDraft(),exerciseId:bench.id,sets:[{weight:null,reps:null,rpe:null,warmup:false}]};
+ const saved=await request('draft','PUT',{revision:prior.revision,draft});assert.equal(saved.statusCode,200);
+ const synced=(await request('draft')).payload;assert.equal(synced.draft.sets[0].weight,null);assert.equal(synced.draft.sets[0].reps,null);
+ assert.equal((await request('entries','POST',{id:randomUUID(),revision:synced.revision})).statusCode,400);
+ const filled={...draft,sets:[{weight:75,reps:12,rpe:8,warmup:false}]};
+ const valid=await request('draft','PUT',{revision:synced.revision,draft:filled});assert.equal(valid.statusCode,200);
+ assert.equal((await request('entries','POST',{id:randomUUID(),revision:valid.payload.revision})).statusCode,201);
+ assert.equal(draftSchema.safeParse({...draft,sets:[{weight:'75',reps:12,rpe:null,warmup:false}]}).success,false);
+ const {unitLabel}=require('../src/lib/gym/types.ts');assert.equal(unitLabel('lb'),'lbs');assert.equal(unitLabel('kg'),'kg');
+});

@@ -443,6 +443,11 @@ export default async function handler(
           if (!row || row.revision !== b.revision)
             throw new ApiError(409, 'Draft changed; sync it before saving');
           const draft = draftSchema.parse(JSON.parse(row.content));
+          if (draft.sets.some((s) => s.weight === null || s.reps === null))
+            throw new ApiError(
+              400,
+              'Enter weight and reps for every set before saving. Use 0 for no external weight.'
+            );
           checkExerciseAndMedia(draft, user.id, true);
           if (draft.sets.every((s) => s.warmup))
             throw new ApiError(400, 'Add at least one working set');

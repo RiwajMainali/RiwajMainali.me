@@ -17,8 +17,8 @@ export const draftSchema = z.object({
   sets: z
     .array(
       z.object({
-        weight: z.number().min(0).max(3000),
-        reps: z.number().int().min(1).max(1000),
+        weight: z.number().min(0).max(3000).nullable(),
+        reps: z.number().int().min(1).max(1000).nullable(),
         rpe: z.number().min(1).max(10).multipleOf(0.5).nullable(),
         warmup: z.boolean(),
       })

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Entry } from '../../lib/gym/types';
+import { unitLabel } from '../../lib/gym/types';
 import { historyPoints } from '../../lib/gym/progress';
 export default function HistoryChart({
   entries,
@@ -60,8 +61,12 @@ export default function HistoryChart({
         {metric === 'max'
           ? 'Epley estimate from working sets of 1–12 reps; higher-rep sets are excluded.'
           : metric === 'volume'
-          ? `Working-set load × reps (${unit}·reps). Bodyweight itself is not added.`
-          : `Working sets only. ${metric === 'reps' ? '' : `Load in ${unit}.`}`}
+          ? `Working-set load × reps (${unitLabel(
+              unit
+            )}·reps). Bodyweight itself is not added.`
+          : `Working sets only. ${
+              metric === 'reps' ? '' : `Load in ${unitLabel(unit)}.`
+            }`}
       </p>
       {points.length === 0 ? (
         <p>No comparable history for this metric yet.</p>
