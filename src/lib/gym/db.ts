@@ -22,6 +22,7 @@ export function db() {
     CREATE TABLE IF NOT EXISTS rate_limits(key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS drafts(user_id TEXT PRIMARY KEY REFERENCES users(id), revision INTEGER NOT NULL DEFAULT 0, content TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS exercises(id TEXT PRIMARY KEY, name TEXT NOT NULL, equipment TEXT NOT NULL, muscle TEXT NOT NULL, bodyPart TEXT NOT NULL, category TEXT NOT NULL, owner_id TEXT REFERENCES users(id));
+    CREATE TABLE IF NOT EXISTS exercise_search_preferences(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, exercise_id TEXT NOT NULL REFERENCES exercises(id) ON DELETE CASCADE, demoted INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(user_id, exercise_id));
     CREATE TABLE IF NOT EXISTS entries(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), exercise_id TEXT NOT NULL REFERENCES exercises(id), content TEXT NOT NULL, created_at TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS entries_owner ON entries(user_id, exercise_id, created_at);
     CREATE TABLE IF NOT EXISTS media(id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), name TEXT NOT NULL, type TEXT NOT NULL, size INTEGER NOT NULL, created_at TEXT NOT NULL);

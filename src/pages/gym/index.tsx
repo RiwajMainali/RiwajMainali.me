@@ -27,6 +27,7 @@ import VolumeHistory from '../../components/gym/VolumeHistory';
 type User = { id: string; name: string; status: string; owner: boolean };
 type Library = {
   suggested?: (Exercise & { reason: string })[];
+  demotedExerciseIds?: string[];
   normalizedQueries?: string[];
   aliasCount?: number;
   exercises: Exercise[];
@@ -44,6 +45,8 @@ export default function Gym() {
     [query, setQuery] = useState(''),
     [equipment, setEquipment] = useState(''),
     [offset, setOffset] = useState(0);
+  const [searchRevision, setSearchRevision] = useState(0),
+    [preferenceBusy, setPreferenceBusy] = useState('');
   const [library, setLibrary] = useState<Library>({
     exercises: [],
     equipments: [],
@@ -133,7 +136,30 @@ export default function Gym() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [enabled, query, equipment, offset, recent]);
+  }, [enabled, query, equipment, offset, recent, searchRevision]);
+  async function setExerciseDemoted(exerciseId: string, demoted: boolean) {
+    setPreferenceBusy(exerciseId);
+    setSearchError('');
+    try {
+      const result = await api<{ demotedExerciseIds: string[] }>(
+        'exercise-preference',
+        'POST',
+        { exerciseId, demoted }
+      );
+      setLibrary((current) => ({
+        ...current,
+        demotedExerciseIds: result.demotedExerciseIds,
+        suggested: demoted
+          ? current.suggested?.filter((exercise) => exercise.id !== exerciseId)
+          : current.suggested,
+      }));
+      setSearchRevision((revision) => revision + 1);
+    } catch (e) {
+      setSearchError((e as Error).message);
+    } finally {
+      setPreferenceBusy('');
+    }
+  }
   async function loadRecent() {
     const r = await api<{ entries: Entry[] }>('entries');
     setRecent(r.entries);
@@ -486,12 +512,70 @@ export default function Gym() {
                     </h3>
                     <div className="gym-exercise-list gym-suggestions">
                       {library.suggested.map((ex) => (
+                        <div className="gym-exercise-choice" key={ex.id}>
+                          <button
+                            className={`gym-exercise-option ${
+                              draft.exerciseId === ex.id ? 'selected' : ''
+                            }`}
+                            disabled={busy}
+                            onClick={() => {
+                              setSelected(ex);
+                              change((d) => ({
+                                ...d,
+                                exerciseId: ex.id,
+                                mode: isCardioExercise(ex)
+                                  ? 'cardio'
+                                  : 'strength',
+                                cardio: emptyCardio(),
+                                sets: d.sets.length
+                                  ? d.sets
+                                  : [
+                                      {
+                                        weight: null,
+                                        reps: 8,
+                                        rpe: null,
+                                        rir: DEFAULT_RIR,
+                                        warmup: false,
+                                      },
+                                    ],
+                                tier:
+                                  recent.find((e) => e.exerciseId === ex.id)
+                                    ?.tier ?? 'auto',
+                              }));
+                            }}
+                          >
+                            <strong>{ex.name}</strong>
+                            <span>
+                              {ex.equipment} · {ex.reason}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className="gym-exercise-feedback"
+                            aria-label={`Move ${ex.name} to other variations`}
+                            title="Move to other variations"
+                            disabled={preferenceBusy === ex.id}
+                            onClick={() => void setExerciseDemoted(ex.id, true)}
+                          >
+                            −
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                <h3 className="gym-results-title">Other variations</h3>
+                <div className="gym-exercise-list">
+                  {library.exercises
+                    .filter(
+                      (ex) => !library.suggested?.some((s) => s.id === ex.id)
+                    )
+                    .map((ex) => (
+                      <div className="gym-exercise-choice" key={ex.id}>
                         <button
-                          key={ex.id}
-                          className={
+                          className={`gym-exercise-option ${
                             draft.exerciseId === ex.id ? 'selected' : ''
-                          }
-                          disabled={busy}
+                          }`}
                           onClick={() => {
                             setSelected(ex);
                             change((d) => ({
@@ -517,56 +601,28 @@ export default function Gym() {
                                   ?.tier ?? 'auto',
                             }));
                           }}
+                          disabled={busy}
                         >
                           <strong>{ex.name}</strong>
                           <span>
-                            {ex.equipment} · {ex.reason}
+                            {ex.equipment} · {ex.muscle}
                           </span>
                         </button>
-                      ))}
-                    </div>
-                  </section>
-                )}
-                <h3 className="gym-results-title">Other variations</h3>
-                <div className="gym-exercise-list">
-                  {library.exercises
-                    .filter(
-                      (ex) => !library.suggested?.some((s) => s.id === ex.id)
-                    )
-                    .map((ex) => (
-                      <button
-                        className={draft.exerciseId === ex.id ? 'selected' : ''}
-                        key={ex.id}
-                        onClick={() => {
-                          setSelected(ex);
-                          change((d) => ({
-                            ...d,
-                            exerciseId: ex.id,
-                            mode: isCardioExercise(ex) ? 'cardio' : 'strength',
-                            cardio: emptyCardio(),
-                            sets: d.sets.length
-                              ? d.sets
-                              : [
-                                  {
-                                    weight: null,
-                                    reps: 8,
-                                    rpe: null,
-                                    rir: DEFAULT_RIR,
-                                    warmup: false,
-                                  },
-                                ],
-                            tier:
-                              recent.find((e) => e.exerciseId === ex.id)
-                                ?.tier ?? 'auto',
-                          }));
-                        }}
-                        disabled={busy}
-                      >
-                        <strong>{ex.name}</strong>
-                        <span>
-                          {ex.equipment} · {ex.muscle}
-                        </span>
-                      </button>
+                        {library.demotedExerciseIds?.includes(ex.id) && (
+                          <button
+                            type="button"
+                            className="gym-exercise-feedback"
+                            aria-label={`Restore ${ex.name} to usual and standard variations`}
+                            title="Restore to usual and standard variations"
+                            disabled={preferenceBusy === ex.id}
+                            onClick={() =>
+                              void setExerciseDemoted(ex.id, false)
+                            }
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
                     ))}
                 </div>
                 <div className="gym-row">

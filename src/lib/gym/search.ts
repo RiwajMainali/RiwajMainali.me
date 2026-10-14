@@ -155,7 +155,8 @@ export function searchExercises(
   query: string,
   equipment = '',
   offset = 0,
-  usage: ExerciseUsage[] = []
+  usage: ExerciseUsage[] = [],
+  demotedExerciseIds: string[] = []
 ) {
   const globals = exercises.filter((e) => e.id.startsWith('og-'));
   const key = globals.map((e) => e.id + '\0' + e.name).join('\n');
@@ -198,8 +199,12 @@ export function searchExercises(
         a.exercise.id.localeCompare(b.exercise.id)
     );
   const used = new Map(usage.map((u) => [u.exerciseId, u]));
-  // Familiar matching lifts come first. Never let history override search filters.
+  const demoted = new Set(demotedExerciseIds);
+  // Keep demoted lifts visible in the other tier; otherwise familiar lifts lead.
   matched.sort((a, b) => {
+    const ad = demoted.has(a.exercise.id),
+      bd = demoted.has(b.exercise.id);
+    if (ad !== bd) return ad ? -1 : 1;
     const au = used.get(a.exercise.id),
       bu = used.get(b.exercise.id);
     if (!!au !== !!bu) return au ? -1 : 1;
@@ -214,13 +219,15 @@ export function searchExercises(
   const suggested: (Exercise & { reason: string })[] = [];
   const selected = new Set<string>();
   const gears = new Set<string>();
-  for (const m of matched.filter((m) => used.has(m.exercise.id)).slice(0, 3)) {
+  for (const m of matched
+    .filter((m) => used.has(m.exercise.id) && !demoted.has(m.exercise.id))
+    .slice(0, 3)) {
     suggested.push({ ...m.exercise, reason: 'Previously logged' });
     selected.add(m.exercise.id);
     gears.add(m.exercise.equipment);
   }
   const standard = [...matched]
-    .filter((m) => !selected.has(m.exercise.id))
+    .filter((m) => !selected.has(m.exercise.id) && !demoted.has(m.exercise.id))
     .sort(
       (a, b) =>
         b.score - a.score || a.exercise.name.localeCompare(b.exercise.name)

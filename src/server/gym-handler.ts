@@ -286,6 +286,41 @@ export default async function handler(
       if (!exercise) throw new ApiError(404, 'Exercise not found');
       return res.json({ exercise });
     }
+    if (route === 'exercise-preference') {
+      requireMethod(req, 'POST');
+      const b = z
+        .object({
+          exerciseId: z.string().min(1).max(100),
+          demoted: z.boolean(),
+        })
+        .parse(await readJson(req));
+      const exercise = db()
+        .prepare(
+          'SELECT id FROM exercises WHERE id=? AND (owner_id IS NULL OR owner_id=?)'
+        )
+        .get(b.exerciseId, user.id);
+      if (!exercise) throw new ApiError(404, 'Exercise not found');
+      if (b.demoted)
+        db()
+          .prepare(
+            'INSERT INTO exercise_search_preferences(user_id,exercise_id,demoted) VALUES(?,?,1) ON CONFLICT(user_id,exercise_id) DO UPDATE SET demoted=1'
+          )
+          .run(user.id, b.exerciseId);
+      else
+        db()
+          .prepare(
+            'DELETE FROM exercise_search_preferences WHERE user_id=? AND exercise_id=?'
+          )
+          .run(user.id, b.exerciseId);
+      const rows = db()
+        .prepare(
+          'SELECT exercise_id exerciseId FROM exercise_search_preferences WHERE user_id=? AND demoted=1'
+        )
+        .all(user.id) as { exerciseId: string }[];
+      return res.json({
+        demotedExerciseIds: rows.map((row) => row.exerciseId),
+      });
+    }
     if (route === 'exercises') {
       requireMethod(req, 'GET', 'POST');
       if (req.method === 'POST') {
@@ -342,15 +377,24 @@ export default async function handler(
           'SELECT exercise_id exerciseId, count(*) count, max(created_at) lastUsed FROM entries WHERE user_id=? GROUP BY exercise_id'
         )
         .all(user.id) as ExerciseUsage[];
+      const demotedExerciseIds = (
+        db()
+          .prepare(
+            'SELECT exercise_id exerciseId FROM exercise_search_preferences WHERE user_id=? AND demoted=1'
+          )
+          .all(user.id) as { exerciseId: string }[]
+      ).map((row) => row.exerciseId);
       const result = searchExercises(
         available,
         query,
         equipment,
         offset,
-        usage
+        usage,
+        demotedExerciseIds
       );
       return res.json({
         ...result,
+        demotedExerciseIds,
         equipments: [...new Set(available.map((e) => e.equipment))].sort(),
       });
     }
@@ -439,6 +483,11 @@ export default async function handler(
               user.id,
               draft ? JSON.parse(draft.content).exerciseId : ''
             ),
+          exercisePreferences: db()
+            .prepare(
+              'SELECT exercise_id exerciseId,demoted FROM exercise_search_preferences WHERE user_id=?'
+            )
+            .all(user.id),
           media: db()
             .prepare(
               'SELECT id,name,type,size,created_at createdAt FROM media WHERE user_id=? ORDER BY created_at,id'
