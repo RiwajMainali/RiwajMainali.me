@@ -1,4 +1,5 @@
 import type { Entry, Exercise, SetLog } from './types';
+import { setRir } from './types';
 const DAY = 86400000;
 export const kg = (weight: number, unit: string) =>
   unit === 'lb' ? weight * 0.45359237 : weight;
@@ -158,8 +159,9 @@ export function progression(
       message:
         'Recent sessions vary too much for a useful forecast. Keep exercise setup, range of motion and load convention consistent.',
     };
-  const effortKnown = best.rpe !== null;
-  const mayAdd = median > 0 && effortKnown && best.rpe! <= 8 && best.reps < 12;
+  const bestRir = setRir(best);
+  const effortKnown = bestRir !== null;
+  const mayAdd = median > 0 && effortKnown && bestRir! >= 2 && best.reps < 12;
   const nextReps = best.reps + (mayAdd ? 1 : 0);
   const forecast = [7, 14].map((days) => ({
     date: new Date(Date.parse(recent[recent.length - 1]!.date) + days * DAY)

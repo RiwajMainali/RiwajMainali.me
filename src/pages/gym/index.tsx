@@ -10,7 +10,8 @@ import type {
 } from '../../lib/gym/types';
 import {
   unitLabel,
-  DEFAULT_RPE,
+  DEFAULT_RIR,
+  setRir,
   isHardSet,
   emptyCardio,
   workoutMode,
@@ -38,6 +39,7 @@ export default function Gym() {
     [checked, setChecked] = useState(false),
     [error, setError] = useState('');
   const [historyView, setHistoryView] = useState('volume');
+  const [effortInput, setEffortInput] = useState<'rir' | 'rpe'>('rir');
   const [tab, setTab] = useState('History'),
     [query, setQuery] = useState(''),
     [equipment, setEquipment] = useState(''),
@@ -505,7 +507,8 @@ export default function Gym() {
                                     {
                                       weight: null,
                                       reps: 8,
-                                      rpe: DEFAULT_RPE,
+                                      rpe: null,
+                                      rir: DEFAULT_RIR,
                                       warmup: false,
                                     },
                                   ],
@@ -547,7 +550,8 @@ export default function Gym() {
                                   {
                                     weight: null,
                                     reps: 8,
-                                    rpe: DEFAULT_RPE,
+                                    rpe: null,
+                                    rir: DEFAULT_RIR,
                                     warmup: false,
                                   },
                                 ],
@@ -605,7 +609,8 @@ export default function Gym() {
                                 {
                                   weight: null,
                                   reps: 8,
-                                  rpe: DEFAULT_RPE,
+                                  rpe: null,
+                                  rir: DEFAULT_RIR,
                                   warmup: false,
                                 },
                               ],
@@ -687,7 +692,8 @@ export default function Gym() {
                                   {
                                     weight: null,
                                     reps: 8,
-                                    rpe: DEFAULT_RPE,
+                                    rpe: null,
+                                    rir: DEFAULT_RIR,
                                     warmup: false,
                                   },
                                 ],
@@ -782,7 +788,7 @@ export default function Gym() {
                           <span>Set</span>
                           <span>{unitLabel(draft.unit)}</span>
                           <span>Reps</span>
-                          <span>RPE</span>
+                          <span>{effortInput.toUpperCase()}</span>
                           <span>Warmup</span>
                           <span />
                         </div>
@@ -819,7 +825,7 @@ export default function Gym() {
                               aria-label={`Set ${i + 1} reps`}
                               type="number"
                               inputMode="numeric"
-                              min="1"
+                              min="0"
                               max="1000"
                               value={s.reps ?? ''}
                               required
@@ -834,20 +840,40 @@ export default function Gym() {
                               }
                             />
                             <input
-                              aria-label={`Set ${i + 1} RPE`}
+                              aria-label={`Set ${
+                                i + 1
+                              } ${effortInput.toUpperCase()}`}
                               type="number"
                               inputMode="decimal"
-                              min="1"
+                              min={effortInput === 'rir' ? '0' : '1'}
                               max="10"
                               step="0.5"
                               placeholder="—"
-                              value={s.rpe ?? ''}
+                              value={
+                                effortInput === 'rir'
+                                  ? setRir(s) ?? ''
+                                  : s.rpe ??
+                                    (setRir(s) === null ? '' : 10 - setRir(s)!)
+                              }
                               onChange={(e) =>
-                                updateSet(i, {
-                                  rpe: e.target.value
-                                    ? Number(e.target.value)
-                                    : null,
-                                })
+                                updateSet(
+                                  i,
+                                  effortInput === 'rir'
+                                    ? {
+                                        rir:
+                                          e.target.value === ''
+                                            ? null
+                                            : Number(e.target.value),
+                                        rpe: null,
+                                      }
+                                    : {
+                                        rpe:
+                                          e.target.value === ''
+                                            ? null
+                                            : Number(e.target.value),
+                                        rir: null,
+                                      }
+                                )
                               }
                             />
                             <input
@@ -881,7 +907,8 @@ export default function Gym() {
                                 ...d.sets,
                                 {
                                   ...d.sets[d.sets.length - 1]!,
-                                  rpe: DEFAULT_RPE,
+                                  rpe: null,
+                                  rir: DEFAULT_RIR,
                                 },
                               ],
                             }))
@@ -889,11 +916,24 @@ export default function Gym() {
                         >
                           + Add set
                         </button>
+                        <label className="gym-effort-mode">
+                          Effort input
+                          <select
+                            aria-label="Effort input"
+                            value={effortInput}
+                            onChange={(e) =>
+                              setEffortInput(e.target.value as 'rir' | 'rpe')
+                            }
+                          >
+                            <option value="rir">RIR</option>
+                            <option value="rpe">RPE (converted to RIR)</option>
+                          </select>
+                        </label>
                         <p className="gym-muted">
                           Weight and reps are required to save; use 0 for no
-                          external weight. RPE 10 = no reps left, 9 ≈ 1 left, 8
-                          ≈ 2 left. New sets default to RPE 6. RPE 7+ counts as
-                          a hard set for volume; blank RPE does not count.
+                          external weight. RIR means reps in reserve (0 =
+                          failure). Old RPE logs convert as RIR = 10 − RPE; new
+                          sets default to 4 RIR (RPE 6).
                         </p>
                       </>
                     )}
@@ -1072,9 +1112,9 @@ export default function Gym() {
                             (s) =>
                               `${s.weight} ${unitLabel(entry.unit)} × ${
                                 s.reps
-                              }${s.rpe === null ? '' : ` @${s.rpe}`}${
-                                s.warmup ? ' (warmup)' : ''
-                              }`
+                              }${
+                                setRir(s) === null ? '' : ` @${setRir(s)} RIR`
+                              }${s.warmup ? ' (warmup)' : ''}`
                           )
                           .join(' · ')}
                   </p>

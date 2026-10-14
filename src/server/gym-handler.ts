@@ -24,12 +24,13 @@ import {
 } from '../lib/gym/search';
 import {
   emptyDraft,
-  DEFAULT_RPE,
+  DEFAULT_RIR,
   workoutMode,
   type Draft,
   type Exercise,
 } from '../lib/gym/types';
 import { volumeRows } from '../lib/gym/volume';
+import { scoreSets, compareVolumeToE1rm } from '../lib/gym/volume-score';
 import { upload, serveMedia } from '../lib/gym/media';
 export const config = { api: { bodyParser: false, responseLimit: false } };
 export default async function handler(
@@ -357,23 +358,29 @@ export default async function handler(
       requireMethod(req, 'GET');
       const rows = db()
         .prepare(
-          'SELECT e.content,x.name exercise,x.muscle,x.category FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? ORDER BY e.created_at,e.id'
+          'SELECT e.id,e.content,x.name exercise,x.muscle,x.category,x.equipment FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? ORDER BY e.created_at,e.id'
         )
         .all(user.id) as {
+        id: string;
         content: string;
         exercise: string;
         muscle: string;
         category: string;
+        equipment: string;
       }[];
+      const entries = rows.map((r) => ({
+        ...JSON.parse(r.content),
+        id: r.id,
+        exercise: r.exercise,
+        muscle: r.muscle,
+        category: r.category,
+        equipment: r.equipment,
+      }));
+      const scores = scoreSets(entries);
       return res.json({
-        rows: volumeRows(
-          rows.map((r) => ({
-            ...JSON.parse(r.content),
-            exercise: r.exercise,
-            muscle: r.muscle,
-            category: r.category,
-          }))
-        ),
+        rows: volumeRows(entries),
+        scores,
+        e1rmComparison: compareVolumeToE1rm(entries, scores),
         unit: 'kg',
       });
     }
@@ -385,13 +392,16 @@ export default async function handler(
       const data = db().transaction(() => {
         const rows = db()
           .prepare(
-            'SELECT e.id,e.content,e.created_at,x.name exercise FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? ORDER BY e.created_at,e.id'
+            'SELECT e.id,e.content,e.created_at,x.name exercise,x.muscle,x.equipment,x.category FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? ORDER BY e.created_at,e.id'
           )
           .all(user.id) as {
           id: string;
           content: string;
           created_at: string;
           exercise: string;
+          muscle: string;
+          equipment: string;
+          category: string;
         }[];
         const draft = db()
           .prepare(
@@ -409,6 +419,9 @@ export default async function handler(
             id: r.id,
             exercise: r.exercise,
             createdAt: r.created_at,
+            muscle: r.muscle,
+            equipment: r.equipment,
+            category: r.category,
           })),
           draft: draft
             ? {
@@ -439,7 +452,15 @@ export default async function handler(
           .toISOString()
           .slice(0, 10)}.${format}"`
       );
-      if (format === 'json') return res.json(data);
+      if (format === 'json')
+        return res.json({
+          ...data,
+          volumeScores: scoreSets(data.entries),
+          e1rmComparison: compareVolumeToE1rm(
+            data.entries,
+            scoreSets(data.entries)
+          ),
+        });
       const header = [
         'entry_id',
         'date',
@@ -450,6 +471,11 @@ export default async function handler(
         'weight_unit',
         'reps',
         'rpe',
+        'rir',
+        'completion_ratio',
+        'completion_score',
+        'rir_decay_score',
+        'rir_source',
         'warmup',
         'duration_minutes',
         'distance',
@@ -466,17 +492,16 @@ export default async function handler(
           .replace(/"/g, '""') +
         '"';
       const rows: unknown[][] = [header];
+      const scoreList = scoreSets(data.entries);
+      const scoreBySet = new Map(
+        scoreList.map((s) => [`${s.entryId}:${s.setNumber}`, s])
+      );
       for (const e of data.entries) {
         const base = [e.id, e.date, e.exercise, e.mode ?? 'strength'];
         if (e.mode === 'cardio')
           rows.push([
             ...base,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
+            ...Array(11).fill(''),
             e.cardio?.minutes,
             e.cardio?.distance,
             e.cardio?.distanceUnit,
@@ -491,25 +516,34 @@ export default async function handler(
                 weight: number;
                 reps: number;
                 rpe: number | null;
+                rir?: number | null;
                 warmup: boolean;
               },
               i: number
             ) =>
-              rows.push([
-                ...base,
-                i + 1,
-                s.weight,
-                e.unit === 'lb' ? 'lbs' : 'kg',
-                s.reps,
-                s.rpe,
-                s.warmup,
-                '',
-                '',
-                '',
-                '',
-                e.notes,
-                e.mediaIds.join(' '),
-              ])
+              (() => {
+                const score = scoreBySet.get(`${e.id}:${i + 1}`);
+                rows.push([
+                  ...base,
+                  i + 1,
+                  s.weight,
+                  e.unit === 'lb' ? 'lbs' : 'kg',
+                  s.reps,
+                  s.rpe,
+                  score?.rir,
+                  score?.completionRatio,
+                  score?.completionScore,
+                  score?.rirDecayScore,
+                  score?.rirSource,
+                  s.warmup,
+                  '',
+                  '',
+                  '',
+                  '',
+                  e.notes,
+                  e.mediaIds.join(' '),
+                ]);
+              })()
           );
       }
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -566,7 +600,7 @@ export default async function handler(
         const offset = Math.max(0, Number(req.query.offset) || 0);
         const rows = db()
           .prepare(
-            "SELECT e.id,e.content,e.created_at,x.name exercise FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? AND (?='' OR e.exercise_id=?) ORDER BY e.created_at DESC,e.id LIMIT 200 OFFSET ?"
+            "SELECT e.id,e.content,e.created_at,x.name exercise,x.muscle,x.equipment,x.category FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? AND (?='' OR e.exercise_id=?) ORDER BY e.created_at DESC,e.id LIMIT 200 OFFSET ?"
           )
           .all(user.id, exercise, exercise, offset) as {
           id: string;
@@ -647,7 +681,11 @@ export default async function handler(
           const next = {
             ...draft,
             date: emptyDraft().date,
-            sets: draft.sets.map((s) => ({ ...s, rpe: DEFAULT_RPE })),
+            sets: draft.sets.map((s) => ({
+              ...s,
+              rpe: null,
+              rir: DEFAULT_RIR,
+            })),
             notes: '',
             mediaIds: [],
             ...(draft.mode === 'cardio'

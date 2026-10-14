@@ -1,7 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/gym/client';
-import { dailyVolume, type VolumeRow } from '../../lib/gym/volume';
+import {
+  effectiveDaily,
+  rollingSevenDays,
+  type EffectivePoint,
+  type SetScore,
+  type VolumeRow,
+} from '../../lib/gym/volume';
 import { unitLabel } from '../../lib/gym/types';
+type Comparison = {
+  exercise: string;
+  weeks: number;
+  effectiveCorrelation: number;
+  rirDecayCorrelation: number;
+};
 export default function VolumeHistory({
   selectedExerciseId,
   refresh,
@@ -10,64 +22,134 @@ export default function VolumeHistory({
   refresh: unknown;
 }) {
   const [rows, setRows] = useState<VolumeRow[]>([]),
+    [scores, setScores] = useState<SetScore[]>([]),
+    [comparison, setComparison] = useState<Comparison[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
-  const [scope, setScope] = useState<'exercise' | 'day' | 'muscle'>('day');
-  const [exerciseId, setExerciseId] = useState(selectedExerciseId),
+  const [scope, setScope] = useState<'exercise' | 'day' | 'muscle'>('day'),
+    [exerciseId, setExerciseId] = useState(selectedExerciseId),
     [muscle, setMuscle] = useState('');
-  const [metric, setMetric] = useState<'sets' | 'volume'>('sets');
-  const [unit, setUnit] = useState<'lb' | 'kg'>('lb');
+  const [model, setModel] = useState<'hard' | 'completion' | 'rir_decay'>('completion'),
+    [unit, setUnit] = useState<'lb' | 'kg'>('lb'),
+    [exponent, setExponent] = useState(1),
+    [useFloor, setUseFloor] = useState(false),
+    [halveAfterTen, setHalveAfterTen] = useState(false);
   useEffect(() => {
-    const controller = new AbortController();
+    const c = new AbortController();
     setLoading(true);
     setError('');
-    void api<{ rows: VolumeRow[] }>('volume')
+    void api<{
+      rows: VolumeRow[];
+      scores: SetScore[];
+      e1rmComparison: Comparison[];
+    }>('volume')
       .then((r) => {
-        if (!controller.signal.aborted) setRows(r.rows);
+        if (!c.signal.aborted) {
+          setRows(r.rows);
+          setScores(r.scores);
+          setComparison(r.e1rmComparison ?? []);
+        }
       })
       .catch((e) => {
-        if (!controller.signal.aborted) setError((e as Error).message);
+        if (!c.signal.aborted) setError((e as Error).message);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!c.signal.aborted) setLoading(false);
       });
-    return () => controller.abort();
+    return () => c.abort();
   }, [refresh]);
   const exercises = [
     ...new Map(
       rows.map((r) => [r.exerciseId, { id: r.exerciseId, name: r.exercise }])
     ).values(),
   ].sort((a, b) => a.name.localeCompare(b.name));
-  const muscles = [...new Set(rows.map((r) => r.muscle))].sort();
+  const muscles = [
+    ...new Set(scores.flatMap((s) => s.muscles.map((m) => m.muscle))),
+  ].sort();
   const activeExercise = exercises.some((e) => e.id === exerciseId)
     ? exerciseId
+    : exercises.some((e) => e.id === selectedExerciseId)
+    ? selectedExerciseId
     : exercises[0]?.id ?? '';
-  const activeMuscle = muscles.includes(muscle) ? muscle : muscles[0] ?? '';
-  const factor = unit === 'lb' ? 1 / 0.45359237 : 1;
-  const points = dailyVolume(
+  const preferredMuscle = scores
+    .find((s) => s.exerciseId === activeExercise)
+    ?.muscles.find((m) => m.coefficient === 1)?.muscle;
+  const activeMuscle = muscles.includes(muscle)
+    ? muscle
+    : preferredMuscle ?? muscles[0] ?? '';
+  const daily = useMemo(() => {
+    const filtered = scores.filter(
+      (s) =>
+        (scope !== 'exercise' || s.exerciseId === activeExercise) &&
+        (!activeMuscle || s.muscles.some((m) => m.muscle === activeMuscle)) &&
+        !s.ignored &&
+        s.reps > 0
+    );
+    if (model === 'hard') {
+      const grouped = new Map<string, EffectivePoint>();
+      for (const s of filtered) {
+        if (s.rir === null || s.rir > 3) continue;
+        for (const m of s.muscles) {
+          if (m.muscle !== activeMuscle) continue;
+          const key = JSON.stringify([s.date, m.muscle]);
+          const p = grouped.get(key) ?? {
+            date: s.date,
+            muscle: m.muscle,
+            score: 0,
+            sets: 0,
+            missingRir: 0,
+          };
+          p.score += m.coefficient;
+          p.sets++;
+          grouped.set(key, p);
+        }
+      }
+      return rollingSevenDays([...grouped.values()], activeMuscle);
+    }
+    return rollingSevenDays(
+      effectiveDaily(scores, model === 'completion' ? 'completion' : 'rir_decay', {
+        exerciseId: scope === 'exercise' ? activeExercise : undefined,
+        muscle: activeMuscle,
+        exponent,
+        floor: useFloor ? 0.4 : undefined,
+        halveAfterTen,
+      }),
+      activeMuscle
+    );
+  }, [
+    model,
     rows,
+    scores,
     scope,
-    scope === 'exercise' ? activeExercise : activeMuscle
-  ).map((p) => ({ ...p, volume: p.volume * factor }));
+    activeExercise,
+    activeMuscle,
+    exponent,
+    useFloor,
+    halveAfterTen,
+  ]);
   const name =
     scope === 'day'
       ? 'All exercises'
       : scope === 'muscle'
       ? activeMuscle
       : exercises.find((e) => e.id === activeExercise)?.name ?? 'Exercise';
-  const metricLabel =
-    metric === 'sets'
-      ? 'Hard sets'
-      : `Hard-set load volume (${unitLabel(unit)}·reps)`;
-  const value = (p: { volume: number; sets: number }) => p[metric];
-  const max = Math.max(1, ...points.map(value)) * 1.1;
-  const start = Date.parse(points[0]?.date ?? '2026-01-01'),
-    end = Date.parse(points[points.length - 1]?.date ?? '2026-01-02');
-  const xy = (p: { date: string; volume: number; sets: number }) =>
+  const values = daily.map((p) => p.score),
+    max = Math.max(1, ...values) * 1.1,
+    start = Date.parse(daily[0]?.date ?? '2026-01-01'),
+    end = Date.parse(daily[daily.length - 1]?.date ?? '2026-01-02');
+  const xy = (p: { date: string; score: number }) =>
     `${
       55 +
       ((Date.parse(p.date) - start) / Math.max(86400000, end - start)) * 610
-    },${190 - (value(p) / max) * 155}`;
+    },${190 - (p.score / max) * 155}`;
+  const missing = scores.filter(
+    (s) =>
+      s.ignored === 'missing_rir' &&
+      (scope !== 'exercise' || s.exerciseId === activeExercise)
+  );
+  const detailScores = scores.filter(
+    (s) => scope !== 'exercise' || s.exerciseId === activeExercise
+  );
   return (
     <section className="gym-card" aria-label="Training volume">
       <h2>Volume history</h2>
@@ -100,70 +182,98 @@ export default function VolumeHistory({
             </select>
           </label>
         )}
-        {scope === 'muscle' && (
-          <label htmlFor="volume-muscle">
-            Muscle group
-            <select
-              id="volume-muscle"
-              value={activeMuscle}
-              onChange={(e) => setMuscle(e.target.value)}
-            >
-              {muscles.map((m) => (
-                <option key={m}>{m}</option>
-              ))}
-            </select>
-          </label>
-        )}
-        <label htmlFor="volume-metric">
-          Volume metric
+        <label htmlFor="volume-muscle">
+          Muscle group
           <select
-            id="volume-metric"
-            value={metric}
-            onChange={(e) => setMetric(e.target.value as typeof metric)}
+            id="volume-muscle"
+            value={activeMuscle}
+            onChange={(e) => setMuscle(e.target.value)}
           >
-            <option value="sets">Hard sets</option>
-            <option value="volume">Hard-set load × reps</option>
+            {muscles.map((m) => (
+              <option key={m}>{m}</option>
+            ))}
           </select>
         </label>
-        {metric === 'volume' && (
-          <label htmlFor="volume-unit">
-            Volume units
-            <select
-              id="volume-unit"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value as typeof unit)}
-            >
-              <option value="lb">lbs·reps</option>
-              <option value="kg">kg·reps</option>
-            </select>
-          </label>
-        )}
+        <label htmlFor="volume-model">
+          Scoring model
+          <select
+            id="volume-model"
+            value={model}
+            onChange={(e) => setModel(e.target.value as typeof model)}
+          >
+            <option value="completion">Reps ÷ (reps + RIR)</option>
+            <option value="rir_decay">RIR decay (0.9^RIR)</option>
+            <option value="hard">Hard sets (RIR ≤ 3)</option>
+          </select>
+        </label>
       </div>
+      {model === 'completion' && (
+        <div className="gym-fields">
+          <label htmlFor="volume-exponent">
+            Exponent k: {exponent.toFixed(1)}
+            <input
+              id="volume-exponent"
+              type="range"
+              min="1"
+              max="2"
+              step="0.5"
+              value={exponent}
+              onChange={(e) => setExponent(Number(e.target.value))}
+            />
+          </label>
+          <label>
+            <span>Exclude sets below 0.4 completion</span>
+            <input
+              type="checkbox"
+              checked={useFloor}
+              onChange={(e) => setUseFloor(e.target.checked)}
+            />
+          </label>
+          <label>
+            <span>Halve effective sets past 10 per muscle/session</span>
+            <input
+              type="checkbox"
+              checked={halveAfterTen}
+              onChange={(e) => setHalveAfterTen(e.target.checked)}
+            />
+          </label>
+        </div>
+      )}
+      {(model === 'completion' || model === 'rir_decay') && (
+        <label htmlFor="volume-unit">
+          Display score as
+          <select id="volume-unit" value="score" disabled>
+            <option value="score">Effective sets</option>
+          </select>
+        </label>
+      )}
       <p className="gym-muted">
-        Training volume counts hard sets: RPE 7 or higher. New sets default to
-        RPE 6; blank RPE does not count. Load × reps includes only hard sets.
-        Cardio is excluded; a warmup tagged RPE 7+ still counts as hard.
-        Bodyweight itself is not added. Muscle totals use each exercise’s
-        primary muscle once, without crediting secondary muscles.
+        {model === 'hard'
+          ? 'Counts strength sets with RIR ≤3 (RPE ≥7), weighted by primary/secondary muscle coefficients.'
+          : model === 'completion'
+          ? `Effective sets use [reps ÷ (reps + RIR)]^${exponent.toFixed(
+              1
+            )} per muscle coefficient. RIR can come from logged RIR, converted RPE, or your median for that exercise. RIR ≤10.`
+          : 'RIR-decay score is 0.9^RIR per set, multiplied by its muscle coefficient.'}{' '}
+        Muscle coefficients use 1.0 primary and 0.5 secondary. Chart shows a
+        rolling 7-day sum. Cardio and warm-ups are excluded; zero-rep sets are
+        ignored.
       </p>
       {loading ? (
-        <p>Loading full volume history…</p>
+        <p>Loading your volume history…</p>
       ) : error ? (
         <p role="alert">{error}</p>
-      ) : !points.length ? (
-        <p>No strength sets logged for this view yet.</p>
+      ) : !daily.length ? (
+        <p>No scored sets yet for this view.</p>
       ) : (
         <>
-          <h3>{name}</h3>
-          <p>
-            Total volume: {points.reduce((n, p) => n + p.sets, 0)} hard sets ·{' '}
-            {points.reduce((n, p) => n + p.volume, 0).toFixed(1)}{' '}
-            {unitLabel(unit)}·reps from hard sets
-          </p>
+          <h3>
+            {name} · {activeMuscle}
+          </h3>
           <svg
             viewBox="0 0 700 235"
             role="img"
-            aria-label={`${name} daily ${metricLabel}`}
+            aria-label={`${name} ${activeMuscle} rolling seven day ${model} volume`}
           >
             {[0, 0.5, 1].map((f) => (
               <g key={f}>
@@ -175,57 +285,158 @@ export default function VolumeHistory({
                   stroke="#ddd"
                 />
                 <text x="48" y={194 - 155 * f} textAnchor="end" fontSize="12">
-                  {Math.round(max * f)}
+                  {(max * f).toFixed(1)}
                 </text>
               </g>
             ))}
             <polyline
-              points={points.map(xy).join(' ')}
+              points={daily.map(xy).join(' ')}
               fill="none"
               stroke="#225d47"
               strokeWidth="2"
             />
-            {points.map((p) => {
+            {daily.map((p) => {
               const [cx, cy] = xy(p).split(',');
               return (
                 <circle key={p.date} cx={cx} cy={cy} r="4" fill="#225d47">
                   <title>
-                    {p.date}: {value(p).toFixed(metric === 'sets' ? 0 : 1)}{' '}
-                    {metricLabel}
+                    {p.date}: {p.score.toFixed(2)} effective sets
                   </title>
                 </circle>
               );
             })}
             <text x="55" y="220" fontSize="12">
-              {points[0]!.date}
+              {daily[0]!.date}
             </text>
             <text x="665" y="220" textAnchor="end" fontSize="12">
-              {points[points.length - 1]!.date}
+              {daily[daily.length - 1]!.date}
             </text>
           </svg>
           <table>
-            <caption>{name} — daily totals</caption>
+            <caption>
+              {name} · {activeMuscle} rolling seven-day totals
+            </caption>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Hard sets</th>
-                <th>Hard-set volume ({unitLabel(unit)}·reps)</th>
-                <th>Hard-set reps</th>
+                <th>Week ending</th>
+                <th>Score</th>
               </tr>
             </thead>
             <tbody>
-              {points.map((p) => (
+              {daily.map((p) => (
                 <tr key={p.date}>
                   <td>{p.date}</td>
-                  <td>{p.sets}</td>
-                  <td>{p.volume.toFixed(1)}</td>
-                  <td>{p.reps}</td>
+                  <td>{p.score.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </>
       )}
+      {missing.length > 0 && (
+        <p role="alert">
+          {missing.length} set(s) need RIR. No exercise median was available, so
+          these are flagged and excluded from both scores.
+        </p>
+      )}
+      <details>
+        <summary>
+          Per-set RIR and score audit ({detailScores.length} sets)
+        </summary>
+        <p>
+          RPE is converted to RIR = 10 − RPE. Missing RIR uses the median of
+          that exercise’s non-warmup logged sets. The comparison RIR-decay
+          formula is 0.9^RIR. Each row lists both scores and muscle
+          coefficients.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Date / exercise</th>
+                <th>Set</th>
+                <th>Reps</th>
+                <th>Load</th>
+                <th>RIR / source</th>
+                <th>Completion</th>
+                <th>Completion score by muscle</th>
+                <th>RIR decay by muscle</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detailScores.map((s, i) => (
+                <tr key={`${s.date}-${s.exerciseId}-${s.setNumber}-${i}`}>
+                  <td>
+                    {s.date} · {s.exercise}
+                  </td>
+                  <td>{s.setNumber}</td>
+                  <td>{s.reps}</td>
+                  <td>
+                    {s.load} {s.unit}
+                  </td>
+                  <td>
+                    {s.rir ?? '—'} / {s.rirSource}
+                  </td>
+                  <td>{s.completionRatio?.toFixed(3) ?? '—'}</td>
+                  <td>
+                    {s.completionScore === null
+                      ? '—'
+                      : s.muscles
+                          .map((m) => `${m.muscle} ${m.completion.toFixed(2)}`)
+                          .join(', ')}
+                  </td>
+                  <td>
+                    {s.rirDecayScore === null
+                      ? '—'
+                      : s.muscles
+                          .map((m) => `${m.muscle} ${m.rirDecay.toFixed(2)}`)
+                          .join(', ')}
+                  </td>
+                  <td>
+                    {s.ignored ??
+                      (s.rirSource === 'exercise_median'
+                        ? 'RIR imputed'
+                        : 'Counted')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details>
+        <summary>e1RM volume comparison</summary>
+        {comparison.length === 0 ? (
+          <p>
+            Need at least eight weeks and nine weekly records for a lift before
+            comparing whether preceding weekly effective-set or RIR-decay volume
+            correlates with next week’s e1RM. Treat these as descriptive
+            correlations, not proof of prediction.
+          </p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Lift</th>
+                <th>Weeks</th>
+                <th>Effective sets → next week e1RM (r)</th>
+                <th>RIR decay → next week e1RM (r)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.map((c) => (
+                <tr key={c.exercise}>
+                  <td>{c.exercise}</td>
+                  <td>{c.weeks}</td>
+                  <td>{c.effectiveCorrelation.toFixed(2)}</td>
+                  <td>{c.rirDecayCorrelation.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </details>
     </section>
   );
 }

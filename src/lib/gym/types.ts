@@ -2,11 +2,18 @@ export type SetLog = {
   weight: number;
   reps: number;
   rpe: number | null;
+  rir?: number | null;
   warmup: boolean;
 };
 export const DEFAULT_RPE = 6;
-export const isHardSet = (set: Pick<SetLog, 'rpe' | 'warmup'>) =>
-  (set.rpe ?? DEFAULT_RPE) >= 7;
+export const DEFAULT_RIR = 4;
+export const setRir = (set: Pick<SetLog, 'rir' | 'rpe'>): number | null =>
+  set.rir ?? (set.rpe === null ? null : 10 - set.rpe);
+export const isHardSet = (set: Pick<SetLog, 'rir' | 'rpe' | 'warmup'>) =>
+  !set.warmup &&
+  (set.rir !== undefined && set.rir !== null
+    ? set.rir <= 3
+    : (set.rpe ?? DEFAULT_RPE) >= 7);
 export type DraftSet = Omit<SetLog, 'weight' | 'reps'> & {
   weight: number | null;
   reps: number | null;
@@ -80,7 +87,7 @@ export const emptyDraft = (): Draft => ({
   date: new Date().toISOString().slice(0, 10),
   unit: 'lb',
   bodyweight: null,
-  sets: [{ weight: null, reps: 8, rpe: DEFAULT_RPE, warmup: false }],
+  sets: [{ weight: null, reps: 8, rpe: null, rir: DEFAULT_RIR, warmup: false }],
   notes: '',
   mediaIds: [],
   tier: 'auto',
