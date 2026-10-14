@@ -1,14 +1,41 @@
 {
     email riwaj227@gmail.com
     admin off
+    servers {
+        max_header_size 16KB
+        timeouts {
+            read_header 5s
+            read_body 5m
+            read_body_idle 30s 1024
+            write 5m
+            write_idle 30s
+            idle 30s
+        }
+    }
 }
 32-192-89-83.sslip.io {
     @api path /api/gym/*
     handle @api {
-        request_body {
-            max_size 51MB
+        @upload {
+            method POST
+            path /api/gym/media
         }
-        reverse_proxy 127.0.0.1:3100
+        handle @upload {
+            request_body {
+                max_size 50MiB
+            }
+            reverse_proxy 127.0.0.1:3100 {
+                header_up X-Gym-Peer {remote_host}
+            }
+        }
+        handle {
+            request_body {
+                max_size 512KiB
+            }
+            reverse_proxy 127.0.0.1:3100 {
+                header_up X-Gym-Peer {remote_host}
+            }
+        }
     }
     handle {
         respond "Not found" 404

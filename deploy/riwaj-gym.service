@@ -19,6 +19,9 @@ ProtectHome=true
 ReadWritePaths=/var/lib/riwaj-gym
 UMask=0077
 MemoryMax=320M
+CPUQuota=75%
+TasksMax=64
+LimitNOFILE=1024
 
 [Install]
 WantedBy=multi-user.target

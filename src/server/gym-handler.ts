@@ -196,7 +196,9 @@ export default async function handler(
       return res.json({ message: 'Device paired' });
     }
     const user = requireUser(req);
-    limited('api:' + user.id, 1000, 60);
+    limited('api:' + user.id, 300, 60);
+    if (['volume', 'export'].includes(route))
+      limited('reports:' + user.id, 30, 60);
     if (route === 'pair') {
       requireMethod(req, 'POST');
       const raw = token();

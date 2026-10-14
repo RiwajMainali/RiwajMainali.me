@@ -1,0 +1,18 @@
+[Unit]
+Description=Riwaj gym host health monitor
+
+[Service]
+Type=oneshot
+TimeoutStartSec=60
+User=root
+Group=root
+EnvironmentFile=/etc/riwaj-gym.env
+ExecStart=/usr/bin/python3 /opt/riwaj-gym/scripts/gym-watch.py
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/riwaj-gym
+UMask=0077
+MemoryMax=64M
+CPUQuota=20%

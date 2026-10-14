@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Riwaj gym host health monitor every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=riwaj-gym-watch.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

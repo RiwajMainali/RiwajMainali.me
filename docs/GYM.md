@@ -152,6 +152,9 @@ this change does not create cloud backup storage. Monitor disk headroom.
   are ready; automated motion analysis is not presented as complete.
 
 ### Cardio and personal exports
+Traffic admission limits, upload concurrency and free-disk checks, service resource
+limits, and the EC2 health-alert timer are documented in [GYM-DEFENSE.md](GYM-DEFENSE.md).
+
 
 Cardio catalogue selections automatically use duration (minutes), optional distance (mi/km), and optional effort (1–10). Average pace is derived from time/distance; notes and private media work as for strength entries. Tracking type can be overridden, including for custom exercises. Saved cardio has `mode: cardio`, a `cardio` object, and empty `sets`; legacy strength records keep their original representation. Cardio charts aggregate daily duration or normalized distance. They do not use lifting tiers, estimated 1RM or rep recommendations. New cardio drafts reset time/distance/effort after save.
 

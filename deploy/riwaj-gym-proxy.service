@@ -20,6 +20,9 @@ ProtectHome=true
 ReadWritePaths=/var/lib/riwaj-gym-proxy
 UMask=0077
 MemoryMax=128M
+CPUQuota=50%
+TasksMax=64
+LimitNOFILE=2048
 
 [Install]
 WantedBy=multi-user.target

@@ -3,13 +3,14 @@ import {
   createReadStream,
   createWriteStream,
   mkdirSync,
+  statfsSync,
   promises as fs,
 } from 'fs';
 import { pipeline } from 'stream/promises';
 import { Transform } from 'stream';
 import path from 'path';
 import { db, dataDir } from './db';
-import { ApiError, id } from './server';
+import { ApiError, id, limited } from './server';
 function sniff(b: Buffer): string | null {
   if (b.toString('hex', 0, 3) === 'ffd8ff') return 'image/jpeg';
   if (b.toString('hex', 0, 8) === '89504e470d0a1a0a') return 'image/png';
@@ -38,7 +39,28 @@ function sniff(b: Buffer): string | null {
   return null;
 }
 const MAX = 50 * 1024 * 1024;
+const uploadsByUser = new Map<string, number>();
+let activeUploads = 0;
 export async function upload(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  userId: string
+) {
+  if (activeUploads >= 4 || (uploadsByUser.get(userId) ?? 0) >= 2)
+    throw new ApiError(429, 'Too many active uploads. Try again shortly.');
+  limited('uploads:' + userId, 20, 3600);
+  activeUploads++;
+  uploadsByUser.set(userId, (uploadsByUser.get(userId) ?? 0) + 1);
+  try {
+    return await uploadFile(req, res, userId);
+  } finally {
+    activeUploads--;
+    const remaining = (uploadsByUser.get(userId) ?? 1) - 1;
+    if (remaining) uploadsByUser.set(userId, remaining);
+    else uploadsByUser.delete(userId);
+  }
+}
+async function uploadFile(
   req: NextApiRequest,
   res: NextApiResponse,
   userId: string
@@ -64,6 +86,19 @@ export async function upload(
   // Reserve bytes before streaming, so concurrent uploads cannot exceed quotas.
   db()
     .transaction(() => {
+      const disk = statfsSync(dataDir());
+      const pending = db()
+        .prepare(
+          "SELECT COALESCE(sum(size),0) n FROM media WHERE type='pending'"
+        )
+        .get() as { n: number };
+      // Pending uploads reserve their full size, conservatively including any
+      // partial bytes already on disk, before another upload can be admitted.
+      if (disk.bavail * disk.bsize - pending.n - length < 1024 * 1024 * 1024)
+        throw new ApiError(
+          507,
+          'Media storage is nearly full. Free some space before uploading.'
+        );
       const mine = db()
         .prepare(
           'SELECT COALESCE(sum(size),0) n, count(*) count FROM media WHERE user_id=?'
