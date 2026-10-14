@@ -142,9 +142,9 @@ export default function VolumeHistory({
       <p className="gym-muted">
         Training volume counts hard sets: RPE 7 or higher. New sets default to
         RPE 6; blank RPE does not count. Load × reps includes only hard sets.
-        Warmups and cardio are excluded; bodyweight itself is not added. Muscle
-        totals use each exercise’s primary muscle once, without crediting
-        secondary muscles.
+        Cardio is excluded; a warmup tagged RPE 7+ still counts as hard.
+        Bodyweight itself is not added. Muscle totals use each exercise’s
+        primary muscle once, without crediting secondary muscles.
       </p>
       {loading ? (
         <p>Loading full volume history…</p>

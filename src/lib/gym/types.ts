@@ -6,7 +6,7 @@ export type SetLog = {
 };
 export const DEFAULT_RPE = 6;
 export const isHardSet = (set: Pick<SetLog, 'rpe' | 'warmup'>) =>
-  !set.warmup && (set.rpe ?? DEFAULT_RPE) >= 7;
+  (set.rpe ?? DEFAULT_RPE) >= 7;
 export type DraftSet = Omit<SetLog, 'weight' | 'reps'> & {
   weight: number | null;
   reps: number | null;

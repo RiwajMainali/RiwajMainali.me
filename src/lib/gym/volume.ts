@@ -41,7 +41,7 @@ export function volumeRows(
   const rows = new Map<string, VolumeRow>();
   for (const e of entries) {
     if (e.mode === 'cardio' || (!e.mode && e.category === 'cardio')) continue;
-    const working = e.sets.filter((s) => !s.warmup);
+    const working = e.sets;
     if (!working.length) continue;
     const key = JSON.stringify([e.date, e.exerciseId]);
     const row = rows.get(key) ?? {
