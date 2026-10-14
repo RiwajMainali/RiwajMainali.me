@@ -1,0 +1,1032 @@
+[
+  {
+    "alias": "bb",
+    "expansion": "barbell",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "db",
+    "expansion": "dumbbell",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "kb",
+    "expansion": "kettlebell",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bw",
+    "expansion": "body weight",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bwt",
+    "expansion": "body weight",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "b/w",
+    "expansion": "body weight",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ez",
+    "expansion": "ez bar",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ezb",
+    "expansion": "ez bar",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ez barbell",
+    "expansion": "ez bar",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "cb",
+    "expansion": "cable",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "cab",
+    "expansion": "cable",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "mach",
+    "expansion": "machine",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "mch",
+    "expansion": "machine",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "m/c",
+    "expansion": "machine",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sm",
+    "expansion": "smith machine",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "smith",
+    "expansion": "smith machine",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pl",
+    "expansion": "plate loaded",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "mb",
+    "expansion": "medicine ball",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "med ball",
+    "expansion": "medicine ball",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "trx",
+    "expansion": "suspension",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sb",
+    "expansion": "stability ball",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "swiss ball",
+    "expansion": "stability ball",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "oh",
+    "expansion": "overhead",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ohp",
+    "expansion": "overhead press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "btn",
+    "expansion": "behind neck",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bth",
+    "expansion": "behind head",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "btb",
+    "expansion": "behind back",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sa",
+    "expansion": "single arm",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "s/a",
+    "expansion": "single arm",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "1a",
+    "expansion": "single arm",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sl",
+    "expansion": "single leg",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "s/l",
+    "expansion": "single leg",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "1l",
+    "expansion": "single leg",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "alt",
+    "expansion": "alternating",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "inc",
+    "expansion": "incline",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "incl",
+    "expansion": "incline",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "dec",
+    "expansion": "decline",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "decl",
+    "expansion": "decline",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "cg",
+    "expansion": "close grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "c/g",
+    "expansion": "close grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "wg",
+    "expansion": "wide grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "w/g",
+    "expansion": "wide grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ng",
+    "expansion": "neutral grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "n/g",
+    "expansion": "neutral grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rg",
+    "expansion": "reverse grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "r/g",
+    "expansion": "reverse grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ug",
+    "expansion": "underhand grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "og",
+    "expansion": "overhand grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "neut",
+    "expansion": "neutral grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sup",
+    "expansion": "supinated grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pro",
+    "expansion": "pronated grip",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "cs",
+    "expansion": "chest supported",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "c/s",
+    "expansion": "chest supported",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "hk",
+    "expansion": "half kneeling",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "tk",
+    "expansion": "tall kneeling",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ffe",
+    "expansion": "front foot elevated",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rfe",
+    "expansion": "rear foot elevated",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "fwd",
+    "expansion": "forward",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bwd",
+    "expansion": "backward",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rev",
+    "expansion": "reverse",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bilat",
+    "expansion": "bilateral",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "dl",
+    "expansion": "deadlift",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rdl",
+    "expansion": "romanian deadlift",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sldl",
+    "expansion": "stiff leg deadlift",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sdl",
+    "expansion": "sumo deadlift",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sgrdl",
+    "expansion": "snatch grip romanian deadlift",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bss",
+    "expansion": "bulgarian split squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rfess",
+    "expansion": "rear foot elevated split squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ffess",
+    "expansion": "front foot elevated split squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sq",
+    "expansion": "squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bs",
+    "expansion": "back squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "fs",
+    "expansion": "front squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "hbbs",
+    "expansion": "high bar back squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lbbs",
+    "expansion": "low bar back squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ohs",
+    "expansion": "overhead squat",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bp",
+    "expansion": "bench press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "cgbp",
+    "expansion": "close grip bench press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "wgbp",
+    "expansion": "wide grip bench press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ibp",
+    "expansion": "incline bench press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "dbp",
+    "expansion": "decline bench press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pp",
+    "expansion": "push press",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pj",
+    "expansion": "push jerk",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bor",
+    "expansion": "bent over row",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "csr",
+    "expansion": "chest supported row",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "tbr",
+    "expansion": "t bar row",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lpd",
+    "expansion": "lat pulldown",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lat pd",
+    "expansion": "lat pulldown",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "latpd",
+    "expansion": "lat pulldown",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pd",
+    "expansion": "pulldown",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "seated cr",
+    "expansion": "seated cable row",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lat raise",
+    "expansion": "lateral raise",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lat raises",
+    "expansion": "lateral raises",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lr",
+    "expansion": "lateral raise",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rd fly",
+    "expansion": "rear delt fly",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rdf",
+    "expansion": "rear delt fly",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "fp",
+    "expansion": "face pull",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ht",
+    "expansion": "hip thrust",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "gb",
+    "expansion": "glute bridge",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "gm",
+    "expansion": "good morning",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "le",
+    "expansion": "leg extension",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lc",
+    "expansion": "leg curl",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "seated lc",
+    "expansion": "seated leg curl",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "lying lc",
+    "expansion": "lying leg curl",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "leg ext",
+    "expansion": "leg extension",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "tri ext",
+    "expansion": "triceps extension",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "tri",
+    "expansion": "triceps",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "tris",
+    "expansion": "triceps",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bi",
+    "expansion": "biceps",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bis",
+    "expansion": "biceps",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "hc",
+    "expansion": "hammer curl",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pc",
+    "expansion": "preacher curl",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "sc",
+    "expansion": "skull crusher",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "calf r",
+    "expansion": "calf raise",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "scr",
+    "expansion": "seated calf raise",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "kbs",
+    "expansion": "kettlebell swing",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "tgu",
+    "expansion": "turkish get up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ghr",
+    "expansion": "glute ham raise",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ghd",
+    "expansion": "glute ham developer",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "hspu",
+    "expansion": "handstand push up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "c2b",
+    "expansion": "chest to bar pull up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ctb",
+    "expansion": "chest to bar pull up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "t2b",
+    "expansion": "toes to bar",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "ttb",
+    "expansion": "toes to bar",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "kte",
+    "expansion": "knees to elbows",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "mu",
+    "expansion": "muscle up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bmu",
+    "expansion": "bar muscle up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "rmu",
+    "expansion": "ring muscle up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bj",
+    "expansion": "box jump",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bjo",
+    "expansion": "box jump over",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "du",
+    "expansion": "double under",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "wb",
+    "expansion": "wall ball",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "situp",
+    "expansion": "sit up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pullup",
+    "expansion": "pull up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "pushup",
+    "expansion": "push up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "chinup",
+    "expansion": "chin up",
+    "kind": "shorthand"
+  },
+  {
+    "alias": "bb bp",
+    "expansion": "barbell bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "db bp",
+    "expansion": "dumbbell bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb inc bp",
+    "expansion": "barbell incline bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "db inc bp",
+    "expansion": "dumbbell incline bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb dec bp",
+    "expansion": "barbell decline bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "db dec bp",
+    "expansion": "dumbbell decline bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb cgbp",
+    "expansion": "barbell close grip bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb wgbp",
+    "expansion": "barbell wide grip bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "sm bp",
+    "expansion": "smith machine bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "sm inc bp",
+    "expansion": "smith machine incline bench press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb ohp",
+    "expansion": "barbell overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "db ohp",
+    "expansion": "dumbbell overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "kb ohp",
+    "expansion": "kettlebell overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "sm ohp",
+    "expansion": "smith machine overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "btn ohp",
+    "expansion": "behind neck overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb btn ohp",
+    "expansion": "barbell behind neck overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "sm btn ohp",
+    "expansion": "smith machine behind neck overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "sa db ohp",
+    "expansion": "single arm dumbbell overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "hk db ohp",
+    "expansion": "half kneeling dumbbell overhead press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb pp",
+    "expansion": "barbell push press",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb rdl",
+    "expansion": "barbell romanian deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "db rdl",
+    "expansion": "dumbbell romanian deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "kb rdl",
+    "expansion": "kettlebell romanian deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl db rdl",
+    "expansion": "single leg dumbbell romanian deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl kb rdl",
+    "expansion": "single leg kettlebell romanian deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "sm rdl",
+    "expansion": "smith machine romanian deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb sldl",
+    "expansion": "barbell stiff leg deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "db sldl",
+    "expansion": "dumbbell stiff leg deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb dl",
+    "expansion": "barbell deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb sdl",
+    "expansion": "barbell sumo deadlift",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb bs",
+    "expansion": "barbell back squat",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb fs",
+    "expansion": "barbell front squat",
+    "kind": "combination"
+  },
+  {
+    "alias": "db bss",
+    "expansion": "dumbbell bulgarian split squat",
+    "kind": "combination"
+  },
+  {
+    "alias": "kb bss",
+    "expansion": "kettlebell bulgarian split squat",
+    "kind": "combination"
+  },
+  {
+    "alias": "db rfess",
+    "expansion": "dumbbell rear foot elevated split squat",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb gm",
+    "expansion": "barbell good morning",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb ht",
+    "expansion": "barbell hip thrust",
+    "kind": "combination"
+  },
+  {
+    "alias": "sm ht",
+    "expansion": "smith machine hip thrust",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl gb",
+    "expansion": "single leg glute bridge",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl ht",
+    "expansion": "single leg hip thrust",
+    "kind": "combination"
+  },
+  {
+    "alias": "bb bor",
+    "expansion": "barbell bent over row",
+    "kind": "combination"
+  },
+  {
+    "alias": "db bor",
+    "expansion": "dumbbell bent over row",
+    "kind": "combination"
+  },
+  {
+    "alias": "sa db row",
+    "expansion": "single arm dumbbell row",
+    "kind": "combination"
+  },
+  {
+    "alias": "cs db row",
+    "expansion": "chest supported dumbbell row",
+    "kind": "combination"
+  },
+  {
+    "alias": "cs bb row",
+    "expansion": "chest supported barbell row",
+    "kind": "combination"
+  },
+  {
+    "alias": "sa cable row",
+    "expansion": "single arm cable row",
+    "kind": "combination"
+  },
+  {
+    "alias": "cg lpd",
+    "expansion": "close grip lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "wg lpd",
+    "expansion": "wide grip lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "ng lpd",
+    "expansion": "neutral grip lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "sa lpd",
+    "expansion": "single arm lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "btn lpd",
+    "expansion": "behind neck lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "mach lpd",
+    "expansion": "machine lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "cb lpd",
+    "expansion": "cable lat pulldown",
+    "kind": "combination"
+  },
+  {
+    "alias": "db lr",
+    "expansion": "dumbbell lateral raise",
+    "kind": "combination"
+  },
+  {
+    "alias": "cb lr",
+    "expansion": "cable lateral raise",
+    "kind": "combination"
+  },
+  {
+    "alias": "sa cb lr",
+    "expansion": "single arm cable lateral raise",
+    "kind": "combination"
+  },
+  {
+    "alias": "db rdf",
+    "expansion": "dumbbell rear delt fly",
+    "kind": "combination"
+  },
+  {
+    "alias": "cb rdf",
+    "expansion": "cable rear delt fly",
+    "kind": "combination"
+  },
+  {
+    "alias": "cb fp",
+    "expansion": "cable face pull",
+    "kind": "combination"
+  },
+  {
+    "alias": "db hc",
+    "expansion": "dumbbell hammer curl",
+    "kind": "combination"
+  },
+  {
+    "alias": "db pc",
+    "expansion": "dumbbell preacher curl",
+    "kind": "combination"
+  },
+  {
+    "alias": "ez pc",
+    "expansion": "ez bar preacher curl",
+    "kind": "combination"
+  },
+  {
+    "alias": "ez sc",
+    "expansion": "ez bar skull crusher",
+    "kind": "combination"
+  },
+  {
+    "alias": "db sc",
+    "expansion": "dumbbell skull crusher",
+    "kind": "combination"
+  },
+  {
+    "alias": "oh tri ext",
+    "expansion": "overhead triceps extension",
+    "kind": "combination"
+  },
+  {
+    "alias": "db oh tri ext",
+    "expansion": "dumbbell overhead triceps extension",
+    "kind": "combination"
+  },
+  {
+    "alias": "cb oh tri ext",
+    "expansion": "cable overhead triceps extension",
+    "kind": "combination"
+  },
+  {
+    "alias": "sa tri ext",
+    "expansion": "single arm triceps extension",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl le",
+    "expansion": "single leg leg extension",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl lc",
+    "expansion": "single leg leg curl",
+    "kind": "combination"
+  },
+  {
+    "alias": "sl calf raise",
+    "expansion": "single leg calf raise",
+    "kind": "combination"
+  }
+]

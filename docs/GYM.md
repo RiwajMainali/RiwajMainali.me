@@ -25,7 +25,7 @@ Mobile logging with one row per set, weight, reps, half-step RPE, warmups, date,
 bodyweight, notes, personal exercises and private photo/video/audio attachments.
 The text catalogue contains all 5,632 openGym entries, pinned to commit
 `e348fc17c42c7e9a211c5972e573ad3698190ee2`; equipment variants retain separate IDs
-and histories. The browser fetches only 50 matching exercises at a time. No
+and histories. Search supports 206 shorthand spellings and two result tiers with personal-history ranking; see GYM-SEARCH.md. The browser fetches 50 matching exercises per page. No
 exercise images or animation library is shipped.
 
 Drafts are persisted on EC2 after 650 ms and refreshed every 5 seconds on other

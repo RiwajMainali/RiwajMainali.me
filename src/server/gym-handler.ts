@@ -16,6 +16,12 @@ import {
 } from '../lib/gym/server';
 import { draftSchema, revisionSchema } from '../lib/gym/validation';
 import { sendApproval } from '../lib/gym/mail';
+import {
+  searchExercises,
+  queryVariants,
+  exerciseIdentity,
+  type ExerciseUsage,
+} from '../lib/gym/search';
 import { emptyDraft, type Draft, type Exercise } from '../lib/gym/types';
 import { upload, serveMedia } from '../lib/gym/media';
 export const config = { api: { bodyParser: false, responseLimit: false } };
@@ -106,12 +112,10 @@ export default async function handler(
         );
       }
       newDevice(res, userId);
-      return res
-        .status(201)
-        .json({
-          message:
-            'Approval requested. Keep this device connected; access activates after approval.',
-        });
+      return res.status(201).json({
+        message:
+          'Approval requested. Keep this device connected; access activates after approval.',
+      });
     }
     if (route === 'approve') {
       requireMethod(req, 'GET', 'POST');
@@ -284,6 +288,26 @@ export default async function handler(
             muscle: z.string().trim().min(1).max(50),
           })
           .parse(await readJson(req));
+        if (queryVariants(b.name).length > 1)
+          throw new ApiError(
+            400,
+            'This shorthand has multiple meanings. Use the full exercise name or select an existing variation from search.'
+          );
+        const available = db()
+          .prepare(
+            'SELECT id,name,equipment,muscle,bodyPart,category FROM exercises WHERE owner_id IS NULL OR owner_id=?'
+          )
+          .all(user.id) as Exercise[];
+        const identical = available.filter(
+          (e) => exerciseIdentity(e) === exerciseIdentity(b)
+        );
+        if (identical.length === 1)
+          return res.status(200).json({ exercise: identical[0], reused: true });
+        if (identical.length > 1)
+          throw new ApiError(
+            409,
+            'Equivalent variations already exist. Select one from exercise search.'
+          );
         limited('custom:' + user.id, 100, 86400);
         const e = { ...b, id: id(), bodyPart: 'custom', category: 'strength' };
         db()
@@ -293,35 +317,32 @@ export default async function handler(
           .run({ ...e, owner_id: user.id });
         return res.status(201).json({ exercise: e });
       }
-      const query = String(req.query.q ?? '')
-        .slice(0, 150)
-        .replace(/[\\%_]/g, '\\$&');
+      const query = String(req.query.q ?? '').slice(0, 150);
       const equipment = String(req.query.equipment ?? '').slice(0, 50);
       const offset = Math.max(
         0,
         Math.min(100000, Number(req.query.offset) || 0)
       );
-      const where =
-        "(owner_id IS NULL OR owner_id=?) AND name LIKE ? ESCAPE '\\' AND (?='' OR equipment=?)";
-      const params = [user.id, `%${query}%`, equipment, equipment];
-      const exercises = db()
+      const available = db()
         .prepare(
-          `SELECT id,name,equipment,muscle,bodyPart,category FROM exercises WHERE ${where} ORDER BY name,id LIMIT 50 OFFSET ?`
+          'SELECT id,name,equipment,muscle,bodyPart,category FROM exercises WHERE owner_id IS NULL OR owner_id=?'
         )
-        .all(...params, offset);
-      const { n: total } = db()
-        .prepare(`SELECT count(*) n FROM exercises WHERE ${where}`)
-        .get(...params) as { n: number };
-      const equipments = db()
+        .all(user.id) as Exercise[];
+      const usage = db()
         .prepare(
-          'SELECT DISTINCT equipment FROM exercises WHERE owner_id IS NULL OR owner_id=? ORDER BY equipment'
+          'SELECT exercise_id exerciseId, count(*) count, max(created_at) lastUsed FROM entries WHERE user_id=? GROUP BY exercise_id'
         )
-        .all(user.id) as { equipment: string }[];
+        .all(user.id) as ExerciseUsage[];
+      const result = searchExercises(
+        available,
+        query,
+        equipment,
+        offset,
+        usage
+      );
       return res.json({
-        exercises,
-        total,
-        hasMore: offset + 50 < total,
-        equipments: equipments.map((e) => e.equipment),
+        ...result,
+        equipments: [...new Set(available.map((e) => e.equipment))].sort(),
       });
     }
     if (route === 'draft') {
@@ -473,13 +494,11 @@ export default async function handler(
       return;
     }
     if (e instanceof z.ZodError)
-      return res
-        .status(400)
-        .json({
-          error: e.issues
-            .map((x) => `${x.path.join('.')}: ${x.message}`)
-            .join('; '),
-        });
+      return res.status(400).json({
+        error: e.issues
+          .map((x) => `${x.path.join('.')}: ${x.message}`)
+          .join('; '),
+      });
     if (e instanceof ApiError)
       return res.status(e.status).json({ error: e.message });
     console.error(

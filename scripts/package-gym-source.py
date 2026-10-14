@@ -6,7 +6,7 @@ import pathlib
 import tarfile
 root = pathlib.Path(__file__).resolve().parents[1]
 output = root / 'public/gym-source.tar.gz'
-paths = ['src/lib/gym', 'src/components/gym', 'src/pages/gym', 'src/pages/api/gym', 'src/server/gym-handler.ts', 'src/data/gym-exercises.json', 'src/styles/gym.css', 'licenses', 'docs/GYM.md', 'tests/gym.test.cjs', 'scripts/test-gym.cjs', 'scripts/gym-admin.cjs', 'scripts/gym-backend.cjs', 'scripts/configure-gym-mail.py', 'scripts/package-gym-source.py', 'deploy']
+paths = ['src/lib/gym', 'src/components/gym', 'src/pages/gym', 'src/pages/api/gym', 'src/server/gym-handler.ts', 'src/data/gym-exercises.json', 'src/data/gym-aliases.json', 'src/styles/gym.css', 'licenses', 'docs/GYM.md', 'tests/gym.test.cjs', 'scripts/test-gym.cjs', 'scripts/gym-admin.cjs', 'scripts/gym-backend.cjs', 'scripts/configure-gym-mail.py', 'scripts/package-gym-source.py', 'deploy']
 package = json.loads((root / 'package.json').read_text())
 keep = ['next', 'react', 'react-dom', 'zod', 'better-sqlite3']
 dev = ['typescript', '@types/node', '@types/react', '@types/react-dom', '@types/better-sqlite3']

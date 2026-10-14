@@ -8,6 +8,9 @@ import { useSyncedDraft } from '../../components/gym/useSyncedDraft';
 import HistoryChart from '../../components/gym/HistoryChart';
 type User = { id: string; name: string; status: string; owner: boolean };
 type Library = {
+  suggested?: (Exercise & { reason: string })[];
+  normalizedQueries?: string[];
+  aliasCount?: number;
   exercises: Exercise[];
   equipments: string[];
   total: number;
@@ -108,7 +111,7 @@ export default function Gym() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [enabled, query, equipment, offset]);
+  }, [enabled, query, equipment, offset, recent]);
   async function loadRecent() {
     const r = await api<{ entries: Entry[] }>('entries');
     setRecent(r.entries);
@@ -449,29 +452,71 @@ export default function Gym() {
                   separate histories
                 </p>
                 {searchError && <p role="alert">{searchError}</p>}
+                <p className="gym-muted">
+                  Shorthand works: BTN OHP, DB RDL, WG LPD. Search changes
+                  names, never your exercise history.
+                </p>
+                {!!library.suggested?.length && (
+                  <section aria-label="Usual and standard variations">
+                    <h3 className="gym-results-title">
+                      Usual & standard variations
+                    </h3>
+                    <div className="gym-exercise-list gym-suggestions">
+                      {library.suggested.map((ex) => (
+                        <button
+                          key={ex.id}
+                          className={
+                            draft.exerciseId === ex.id ? 'selected' : ''
+                          }
+                          disabled={busy}
+                          onClick={() => {
+                            setSelected(ex);
+                            change((d) => ({
+                              ...d,
+                              exerciseId: ex.id,
+                              tier:
+                                recent.find((e) => e.exerciseId === ex.id)
+                                  ?.tier ?? 'auto',
+                            }));
+                          }}
+                        >
+                          <strong>{ex.name}</strong>
+                          <span>
+                            {ex.equipment} · {ex.reason}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                <h3 className="gym-results-title">Other variations</h3>
                 <div className="gym-exercise-list">
-                  {library.exercises.map((ex) => (
-                    <button
-                      className={draft.exerciseId === ex.id ? 'selected' : ''}
-                      key={ex.id}
-                      onClick={() => {
-                        setSelected(ex);
-                        change((d) => ({
-                          ...d,
-                          exerciseId: ex.id,
-                          tier:
-                            recent.find((e) => e.exerciseId === ex.id)?.tier ??
-                            'auto',
-                        }));
-                      }}
-                      disabled={busy}
-                    >
-                      <strong>{ex.name}</strong>
-                      <span>
-                        {ex.equipment} · {ex.muscle}
-                      </span>
-                    </button>
-                  ))}
+                  {library.exercises
+                    .filter(
+                      (ex) => !library.suggested?.some((s) => s.id === ex.id)
+                    )
+                    .map((ex) => (
+                      <button
+                        className={draft.exerciseId === ex.id ? 'selected' : ''}
+                        key={ex.id}
+                        onClick={() => {
+                          setSelected(ex);
+                          change((d) => ({
+                            ...d,
+                            exerciseId: ex.id,
+                            tier:
+                              recent.find((e) => e.exerciseId === ex.id)
+                                ?.tier ?? 'auto',
+                          }));
+                        }}
+                        disabled={busy}
+                      >
+                        <strong>{ex.name}</strong>
+                        <span>
+                          {ex.equipment} · {ex.muscle}
+                        </span>
+                      </button>
+                    ))}
                 </div>
                 <div className="gym-row">
                   <button

@@ -138,3 +138,42 @@ test('SMTP failure rolls back registration; hard 100-user capacity fails closed'
  assert.equal((await request('request','POST',{name:'Overflow',email:'overflow@test.com'},'nobody')).statusCode,409);
  assert.equal(db().prepare("SELECT count(*) n FROM users WHERE status IN ('approved','pending')").get().n,100);
 });
+
+test('206 aliases expand consistently; BTN and full names share the same existing IDs',()=>{
+ const aliases=require('../src/data/gym-aliases.json');
+ const {normalizeExerciseQuery:n,searchExercises:s}=require('../src/lib/gym/search.ts');
+ assert.ok(aliases.length>=100);assert.equal(new Set(aliases.map(a=>a.alias)).size,aliases.length);
+ for(const a of aliases)assert.equal(n(a.alias),n(a.expansion),a.alias);
+ const a=s(catalogue,'bb seated btn ohp').exercises.map(e=>e.id);
+ const b=s(catalogue,'barbell seated behind the neck overhead press').exercises.map(e=>e.id);
+ assert.ok(a.includes('og-0086'));assert.deepEqual(a,b);
+ assert.equal(s(catalogue,'nonsensezzzzzz').total,0);
+ assert.equal(s(catalogue,'DB RDL').exercises.every(e=>e.equipment==='dumbbell'),true);
+});
+test('generic pulldown includes cable and machine; variant keywords remain mandatory',()=>{
+ const {searchExercises:s}=require('../src/lib/gym/search.ts');
+ const r=s(catalogue,'lat pulldown');
+ assert.ok(r.suggested.some(e=>e.equipment==='cable'));
+ assert.ok(r.suggested.some(e=>e.equipment==='leverage machine'));
+ const full=[];for(let offset=0;offset<r.total;offset+=50)full.push(...s(catalogue,'lat pulldown','',offset).exercises);
+ assert.ok(full.some(e=>e.equipment==='cable'));assert.ok(full.some(e=>e.equipment==='leverage machine'));
+ const specific=s(catalogue,'WG LPD','cable');assert.ok(specific.total>0);
+ assert.ok(specific.exercises.every(e=>e.equipment==='cable'&&/wide/.test(e.name)));
+ const ambiguous=s(catalogue,'PU');assert.ok(ambiguous.exercises.some(e=>/push.up/.test(e.name)));assert.ok(ambiguous.exercises.some(e=>/pull.up/.test(e.name)));
+});
+test('matching personal history leads the first tier without overriding equipment or movement',()=>{
+ const {searchExercises:s}=require('../src/lib/gym/search.ts');
+ const used=catalogue.find(e=>e.equipment==='cable'&&e.name.includes('pulldown')&&e.name.includes('wide'));
+ const usage=[{exerciseId:used.id,count:3,lastUsed:'2026-10-14T00:00:00Z'}];
+ const r=s(catalogue,'lat pulldown','',0,usage);
+ assert.equal(r.suggested[0].id,used.id);assert.equal(r.suggested[0].reason,'Previously logged');
+ assert.ok(!s(catalogue,'DB RDL','',0,usage).suggested.some(e=>e.id===used.id));
+ assert.ok(!s(catalogue,'lat pulldown','leverage machine',0,usage).suggested.some(e=>e.id===used.id));
+});
+test('alias-aware custom additions reuse one existing exercise instead of splitting its history',async()=>{
+ const before=db().prepare('SELECT count(*) n FROM exercises').get().n;
+ const r=await request('exercises','POST',{name:'BB seated BTN OHP',equipment:'barbell',muscle:'shoulders'});
+ assert.equal(r.statusCode,200);assert.equal(r.payload.exercise.id,'og-0086');assert.equal(r.payload.reused,true);
+ assert.equal(db().prepare('SELECT count(*) n FROM exercises').get().n,before);
+ const result=await request('exercises?q=BTN%20OHP');assert.ok(result.payload.suggested.length>0);assert.equal(result.payload.aliasCount,206);
+});
