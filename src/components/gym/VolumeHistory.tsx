@@ -3,6 +3,7 @@ import { api } from '../../lib/gym/client';
 import {
   effectiveDaily,
   rollingSevenDays,
+  weeklyTotals,
   type EffectivePoint,
   type SetScore,
   type VolumeRow,
@@ -26,10 +27,14 @@ export default function VolumeHistory({
     [comparison, setComparison] = useState<Comparison[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
-  const [scope, setScope] = useState<'exercise' | 'day' | 'muscle'>('day'),
+  const [scope, setScope] = useState<'exercise' | 'day' | 'week' | 'muscle'>(
+      'day'
+    ),
     [exerciseId, setExerciseId] = useState(selectedExerciseId),
     [muscle, setMuscle] = useState('');
-  const [model, setModel] = useState<'hard' | 'completion' | 'rir_decay'>('completion'),
+  const [model, setModel] = useState<'hard' | 'completion' | 'rir_decay'>(
+      'completion'
+    ),
     [unit, setUnit] = useState<'lb' | 'kg'>('lb'),
     [exponent, setExponent] = useState(1),
     [useFloor, setUseFloor] = useState(false),
@@ -104,18 +109,25 @@ export default function VolumeHistory({
           grouped.set(key, p);
         }
       }
-      return rollingSevenDays([...grouped.values()], activeMuscle);
+      const points = [...grouped.values()];
+      return scope === 'week'
+        ? weeklyTotals(points, activeMuscle)
+        : rollingSevenDays(points, activeMuscle);
     }
-    return rollingSevenDays(
-      effectiveDaily(scores, model === 'completion' ? 'completion' : 'rir_decay', {
+    const points = effectiveDaily(
+      scores,
+      model === 'completion' ? 'completion' : 'rir_decay',
+      {
         exerciseId: scope === 'exercise' ? activeExercise : undefined,
         muscle: activeMuscle,
         exponent,
         floor: useFloor ? 0.4 : undefined,
         halveAfterTen,
-      }),
-      activeMuscle
+      }
     );
+    return scope === 'week'
+      ? weeklyTotals(points, activeMuscle)
+      : rollingSevenDays(points, activeMuscle);
   }, [
     model,
     rows,
@@ -128,7 +140,7 @@ export default function VolumeHistory({
     halveAfterTen,
   ]);
   const name =
-    scope === 'day'
+    scope === 'day' || scope === 'week'
       ? 'All exercises'
       : scope === 'muscle'
       ? activeMuscle
@@ -163,6 +175,7 @@ export default function VolumeHistory({
           >
             <option value="exercise">Per exercise</option>
             <option value="day">Per day — all exercises</option>
+            <option value="week">Per week — all exercises</option>
             <option value="muscle">Per muscle group daily</option>
           </select>
         </label>
@@ -255,9 +268,9 @@ export default function VolumeHistory({
               1
             )} per muscle coefficient. RIR can come from logged RIR, converted RPE, or your median for that exercise. RIR ≤10.`
           : 'RIR-decay score is 0.9^RIR per set, multiplied by its muscle coefficient.'}{' '}
-        Muscle coefficients use 1.0 primary and 0.5 secondary. Chart shows a
-        rolling 7-day sum. Cardio and warm-ups are excluded; zero-rep sets are
-        ignored.
+        Muscle coefficients use 1.0 primary and 0.5 secondary. Daily views show
+        a rolling 7-day sum; the weekly view groups Monday through Sunday.
+        Cardio and warm-ups are excluded; zero-rep sets are ignored.
       </p>
       {loading ? (
         <p>Loading your volume history…</p>
@@ -273,7 +286,9 @@ export default function VolumeHistory({
           <svg
             viewBox="0 0 700 235"
             role="img"
-            aria-label={`${name} ${activeMuscle} rolling seven day ${model} volume`}
+            aria-label={`${name} ${activeMuscle} ${
+              scope === 'week' ? 'weekly' : 'rolling seven day'
+            } ${model} volume`}
           >
             {[0, 0.5, 1].map((f) => (
               <g key={f}>
@@ -314,11 +329,12 @@ export default function VolumeHistory({
           </svg>
           <table>
             <caption>
-              {name} · {activeMuscle} rolling seven-day totals
+              {name} · {activeMuscle}{' '}
+              {scope === 'week' ? 'weekly totals' : 'rolling seven-day totals'}
             </caption>
             <thead>
               <tr>
-                <th>Week ending</th>
+                <th>{scope === 'week' ? 'Week starting' : 'Date'}</th>
                 <th>Score</th>
               </tr>
             </thead>

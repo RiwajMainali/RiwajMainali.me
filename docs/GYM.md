@@ -152,16 +152,19 @@ this change does not create cloud backup storage. Monitor disk headroom.
   are ready; automated motion analysis is not presented as complete.
 
 ### Cardio and personal exports
+
 Cardio catalogue selections automatically use duration (minutes), optional distance (mi/km), and optional effort (1–10). Average pace is derived from time/distance; notes and private media work as for strength entries. Tracking type can be overridden, including for custom exercises. Saved cardio has `mode: cardio`, a `cardio` object, and empty `sets`; legacy strength records keep their original representation. Cardio charts aggregate daily duration or normalized distance. They do not use lifting tiers, estimated 1RM or rep recommendations. New cardio drafts reset time/distance/effort after save.
 
 The Data tab downloads all owned records as JSON (profile, full history, synced draft, exercise definitions and media metadata) or CSV (one row per strength set or cardio session). Attachment files download individually from authenticated, owner-scoped URLs. JSON/CSV contain no device tokens or other accounts' data; CSV neutralizes spreadsheet formulas in text fields. Exports have no history pagination limit and use a consistent database read transaction.
 
 ### Volume views
-History → Volume supports per-exercise, per-day, and daily muscle-group graphs, with a rolling seven-day sum. Every non-cardio set records reps, load, and RIR; RPE remains accepted and converts as RIR = 10 − RPE, including half points. New sets default to RIR 4 (RPE 6). Warmups and zero-rep sets are omitted from scored volume. Missing effort uses the user's median logged RIR for that exercise and is labeled in the audit; if no median exists, it is flagged and excluded.
+
+History → Volume supports per-exercise, per-day, per-week, and daily muscle-group graphs. Daily views show a rolling seven-day sum; the weekly view groups Monday through Sunday. Every non-cardio set records reps, load, and RIR; RPE remains accepted and converts as RIR = 10 − RPE, including half points. New sets default to RIR 4 (RPE 6). Warmups and zero-rep sets are omitted from scored volume. Missing effort uses the user's median logged RIR for that exercise and is labeled in the audit; if no median exists, it is flagged and excluded.
 
 The default effective-set score is `p = reps / (reps + RIR)`, weighted by `p^k` (k defaults to 1 and can be raised to 2). An optional 0.4 floor excludes lower-completion sets, and an optional setting halves contributions after 10 effective sets per muscle per day. Exercise-to-muscle attribution uses 1.0 for the catalogue primary muscle and 0.5 for mapped secondary muscles. The included 5,632-exercise mapping uses movement-family attribution for secondary muscles and falls back to the exercise's catalogue muscle when there is no map. The audit lists each set's completion score and standard comparison score `0.9^RIR`, plus attribution and any exclusion/imputation reason. The RIR-decay model and the existing hard-set view (RIR ≤3 / RPE ≥7) are also available. Cardio is excluded from lifting scores.
 
 For barbell bench press, squat, deadlift, and overhead press variants, the history compares weekly primary-muscle effective volume and RIR-decay volume with the next week's Epley e1RM. It only appears after at least eight weeks and eight adjacent-week comparisons. These are descriptive correlations for an individual, not causal predictions; they become more useful as history accumulates.
 
 ### Hard-set volume and opening view
+
 The gym opens in History → Volume → Per day (all exercises). The completion-weighted effective-set view is the default. The hard-set view remains available and counts sets at RIR ≤3 (equivalent to RPE ≥7); warmups are excluded from every scored view. Existing RPE records remain readable through the RIR conversion, and new records store RIR by default.

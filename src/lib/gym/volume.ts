@@ -207,3 +207,17 @@ export function rollingSevenDays(points: EffectivePoint[], muscle: string) {
     return { date, score };
   });
 }
+
+export function weeklyTotals(points: EffectivePoint[], muscle: string) {
+  const weeks = new Map<string, number>();
+  for (const point of points) {
+    if (muscle && point.muscle !== muscle) continue;
+    const monday = new Date(`${point.date}T00:00:00Z`);
+    monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+    const week = monday.toISOString().slice(0, 10);
+    weeks.set(week, (weeks.get(week) ?? 0) + point.score);
+  }
+  return [...weeks]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, score]) => ({ date, score }));
+}
