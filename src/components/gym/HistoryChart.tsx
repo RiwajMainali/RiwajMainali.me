@@ -11,17 +11,13 @@ export default function HistoryChart({
   forecast: { date: string; max: number }[];
   unit: 'lb' | 'kg';
 }) {
-  const [metric, setMetric] = useState<'max' | 'load' | 'volume' | 'reps'>(
-    'max'
-  );
+  const [metric, setMetric] = useState<'max' | 'load' | 'reps'>('max');
   const [predictionReps, setPredictionReps] = useState(1);
   const metricLabel =
     metric === 'max'
       ? `Predicted ${predictionReps}RM (${unitLabel(unit)})`
       : metric === 'load'
       ? `Heaviest load (${unitLabel(unit)})`
-      : metric === 'volume'
-      ? `Volume (${unitLabel(unit)}·reps)`
       : 'Total working reps';
   const factor = unit === 'lb' ? 1 / 0.45359237 : 1;
   const points = historyPoints(entries)
@@ -64,7 +60,6 @@ export default function HistoryChart({
           >
             <option value="max">Rep max prediction</option>
             <option value="load">Heaviest load</option>
-            <option value="volume">Volume</option>
             <option value="reps">Total working reps</option>
           </select>
         </label>
@@ -101,10 +96,6 @@ export default function HistoryChart({
       <p className="gym-muted">
         {metric === 'max'
           ? `Predicted ${predictionReps}-rep maximum weight from your working sets of 1–12 reps using the Epley formula. Sets above 12 reps are excluded from the baseline. Higher-rep predictions are less precise; effort, technique and endurance affect the result.`
-          : metric === 'volume'
-          ? `Working-set load × reps (${unitLabel(
-              unit
-            )}·reps). Bodyweight itself is not added.`
           : `Working sets only. ${
               metric === 'reps' ? '' : `Load in ${unitLabel(unit)}.`
             }`}

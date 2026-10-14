@@ -28,6 +28,7 @@ import {
   type Draft,
   type Exercise,
 } from '../lib/gym/types';
+import { volumeRows } from '../lib/gym/volume';
 import { upload, serveMedia } from '../lib/gym/media';
 export const config = { api: { bodyParser: false, responseLimit: false } };
 export default async function handler(
@@ -349,6 +350,30 @@ export default async function handler(
       return res.json({
         ...result,
         equipments: [...new Set(available.map((e) => e.equipment))].sort(),
+      });
+    }
+    if (route === 'volume') {
+      requireMethod(req, 'GET');
+      const rows = db()
+        .prepare(
+          'SELECT e.content,x.name exercise,x.muscle,x.category FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? ORDER BY e.created_at,e.id'
+        )
+        .all(user.id) as {
+        content: string;
+        exercise: string;
+        muscle: string;
+        category: string;
+      }[];
+      return res.json({
+        rows: volumeRows(
+          rows.map((r) => ({
+            ...JSON.parse(r.content),
+            exercise: r.exercise,
+            muscle: r.muscle,
+            category: r.category,
+          }))
+        ),
+        unit: 'kg',
       });
     }
     if (route === 'export') {

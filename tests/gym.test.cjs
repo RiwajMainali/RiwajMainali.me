@@ -238,3 +238,28 @@ test('rep-max prediction preserves 1RM and decreases consistently through 15RM',
  assert.throws(()=>predictedRepMax(150,16),RangeError);
  assert.throws(()=>predictedRepMax(150,2.5),RangeError);
 });
+
+test('volume aggregates exercise, whole-day and primary-muscle daily totals with consistent units',()=>{
+ const {volumeRows,dailyVolume}=require('../src/lib/gym/volume.ts');
+ const a={...entry('2026-01-01',100),exerciseId:'bench',exercise:'Bench',muscle:'pectorals'};
+ const b={...entry('2026-01-01',100/0.45359237,8,8,'lb'),exerciseId:'incline',exercise:'Incline',muscle:'pectorals'};
+ const c={...entry('2026-01-01',50),exerciseId:'row',exercise:'Row',muscle:'lats'};
+ const d={...a,date:'2026-01-02'};
+ const warm={...a,sets:[{weight:500,reps:8,rpe:8,warmup:true}]};
+ const cardio={...a,mode:'cardio',sets:[]};
+ const legacyCardio={...a,mode:undefined,category:'cardio'};
+ const rows=volumeRows([a,b,c,d,warm,cardio,legacyCardio,a]);
+ assert.equal(rows.length,4);
+ const exercise=dailyVolume(rows,'exercise','bench');assert.equal(exercise.length,2);assert.equal(exercise[0].volume,1600);assert.equal(exercise[0].sets,2);
+ const days=dailyVolume(rows,'day','');assert.ok(Math.abs(days[0].volume-2800)<1e-6);assert.equal(days[0].sets,4);assert.equal(days[1].volume,800);
+ const chest=dailyVolume(rows,'muscle','Chest');assert.ok(Math.abs(chest[0].volume-2400)<1e-6);assert.equal(chest[0].sets,3);
+ assert.equal(dailyVolume(rows,'muscle','Lats')[0].volume,400);
+ assert.deepEqual(dailyVolume(rows,'exercise','not-logged'),[]);
+});
+
+test('volume endpoint uses full owned history, including records beyond the recent 200',async()=>{
+ const res=await request('volume?userId='+bob);assert.equal(res.statusCode,200);assert.equal(res.payload.unit,'kg');
+ const sets=res.payload.rows.reduce((n,r)=>n+r.sets,0);assert.ok(sets>200);
+ assert.equal((await request('volume','GET',undefined,'nobody')).statusCode,401);
+ const other=await request('volume','GET',undefined,'bob');assert.equal(other.payload.rows.length,1);assert.equal(other.payload.rows[0].volume,99*8);assert.equal(other.payload.rows[0].muscle,'Chest');assert.equal(other.payload.rows[0].sets,1);
+});

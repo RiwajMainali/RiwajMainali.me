@@ -20,6 +20,7 @@ import { useSyncedDraft } from '../../components/gym/useSyncedDraft';
 import HistoryChart from '../../components/gym/HistoryChart';
 import CardioFields from '../../components/gym/CardioFields';
 import CardioHistory from '../../components/gym/CardioHistory';
+import VolumeHistory from '../../components/gym/VolumeHistory';
 type User = { id: string; name: string; status: string; owner: boolean };
 type Library = {
   suggested?: (Exercise & { reason: string })[];
@@ -34,6 +35,7 @@ export default function Gym() {
   const [user, setUser] = useState<User | null>(null),
     [checked, setChecked] = useState(false),
     [error, setError] = useState('');
+  const [historyView, setHistoryView] = useState('exercise');
   const [tab, setTab] = useState('Log'),
     [query, setQuery] = useState(''),
     [equipment, setEquipment] = useState(''),
@@ -990,13 +992,32 @@ export default function Gym() {
           )}
           {tab === 'History' && (
             <>
-              <h1>{selected?.name ?? 'Workout history'}</h1>
+              <h1>
+                {historyView === 'volume'
+                  ? 'Training volume'
+                  : selected?.name ?? 'Workout history'}
+              </h1>
+              <label>
+                History view
+                <select
+                  value={historyView}
+                  onChange={(e) => setHistoryView(e.target.value)}
+                >
+                  <option value="exercise">Selected exercise</option>
+                  <option value="volume">Volume</option>
+                </select>
+              </label>
               <p>
                 Select an exercise in Log to graph it. History below shows the
                 latest 200 entries; the selected exercise’s chart loads its
                 complete history.
               </p>
-              {historyBusy ? (
+              {historyView === 'volume' ? (
+                <VolumeHistory
+                  selectedExerciseId={draft.exerciseId}
+                  refresh={recent}
+                />
+              ) : historyBusy ? (
                 <p>Loading complete lift history…</p>
               ) : historyError ? (
                 <p role="alert">{historyError}</p>
