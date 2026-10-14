@@ -643,7 +643,7 @@ export default async function handler(
       return res.json({ revision: b.revision + 1 });
     }
     if (route === 'entries') {
-      requireMethod(req, 'GET', 'POST', 'DELETE');
+      requireMethod(req, 'GET', 'POST', 'PUT', 'DELETE');
       if (req.method === 'GET') {
         const exercise = String(req.query.exerciseId ?? '');
         const offset = Math.max(0, Number(req.query.offset) || 0);
@@ -681,6 +681,46 @@ export default async function handler(
           .prepare('DELETE FROM entries WHERE user_id=? AND id=?')
           .run(user.id, b.id);
         if (!r.changes) throw new ApiError(404, 'Entry not found');
+        return res.json({ ok: true });
+      }
+      if (req.method === 'PUT') {
+        const b = z
+          .object({ id: z.string().uuid(), entry: draftSchema })
+          .parse(await readJson(req));
+        db()
+          .transaction(() => {
+            const existing = db()
+              .prepare('SELECT id FROM entries WHERE id=? AND user_id=?')
+              .get(b.id, user.id);
+            if (!existing) throw new ApiError(404, 'Entry not found');
+            checkExerciseAndMedia(b.entry, user.id, true);
+            const exercise = db()
+              .prepare('SELECT * FROM exercises WHERE id=?')
+              .get(b.entry.exerciseId) as Exercise;
+            b.entry.mode = workoutMode(b.entry, exercise);
+            if (b.entry.mode === 'cardio') {
+              if (!b.entry.cardio?.minutes)
+                throw new ApiError(400, 'Enter cardio duration before saving');
+              b.entry.sets = [];
+            } else {
+              if (
+                b.entry.sets.some((s) => s.weight === null || s.reps === null)
+              )
+                throw new ApiError(
+                  400,
+                  'Enter weight and reps for every set. Use 0 for no external weight.'
+                );
+              if (!b.entry.sets.length || b.entry.sets.every((s) => s.warmup))
+                throw new ApiError(400, 'Add at least one working set');
+              delete b.entry.cardio;
+            }
+            db()
+              .prepare(
+                'UPDATE entries SET exercise_id=?,content=? WHERE id=? AND user_id=?'
+              )
+              .run(b.entry.exerciseId, JSON.stringify(b.entry), b.id, user.id);
+          })
+          .immediate();
         return res.json({ ok: true });
       }
       const b = z

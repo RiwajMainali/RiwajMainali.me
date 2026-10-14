@@ -55,7 +55,8 @@ export default function Gym() {
   });
   const [selected, setSelected] = useState<Exercise | null>(null),
     [history, setHistory] = useState<Entry[]>([]),
-    [recent, setRecent] = useState<Entry[]>([]);
+    [recent, setRecent] = useState<Entry[]>([]),
+    [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [media, setMedia] = useState<Attachment[]>([]),
     [busy, setBusy] = useState(false),
     [historyBusy, setHistoryBusy] = useState(false);
@@ -167,6 +168,43 @@ export default function Gym() {
   async function loadMedia() {
     const r = await api<{ media: Attachment[] }>('media');
     setMedia(r.media);
+  }
+  function updateEditingSet(
+    index: number,
+    update: Partial<Entry['sets'][number]>
+  ) {
+    setEditingEntry((entry) =>
+      entry
+        ? {
+            ...entry,
+            sets: entry.sets.map((set, i) =>
+              i === index ? { ...set, ...update } : set
+            ),
+          }
+        : entry
+    );
+  }
+  async function saveHistoryEdit() {
+    if (!editingEntry) return;
+    const entry = editingEntry;
+    await api('entries', 'PUT', {
+      id: entry.id,
+      entry: {
+        mode: entry.mode,
+        cardio: entry.cardio,
+        exerciseId: entry.exerciseId,
+        date: entry.date,
+        unit: entry.unit,
+        bodyweight: entry.bodyweight,
+        sets: entry.sets,
+        notes: entry.notes,
+        mediaIds: entry.mediaIds,
+        tier: entry.tier,
+      },
+    });
+    setEditingEntry(null);
+    await loadRecent();
+    setMessage('Workout history updated.');
   }
   useEffect(() => {
     if (enabled)
@@ -1160,40 +1198,324 @@ export default function Gym() {
                     </button>
                     <time>{entry.date}</time>
                   </div>
-                  <p>
-                    {entry.mode === 'cardio' && entry.cardio
-                      ? cardioSummary(entry.cardio)
-                      : entry.sets
-                          .map(
-                            (s) =>
-                              `${s.weight} ${unitLabel(entry.unit)} × ${
-                                s.reps
-                              }${
-                                setRir(s) === null ? '' : ` @${setRir(s)} RIR`
-                              }${s.warmup ? ' (warmup)' : ''}`
-                          )
-                          .join(' · ')}
-                  </p>
-                  {entry.notes && <p className="gym-note">{entry.notes}</p>}
-                  <Media
-                    items={media.filter((m) => entry.mediaIds.includes(m.id))}
-                  />
-                  <button
-                    disabled={busy}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          'Delete this saved workout? This cannot be undone.'
-                        )
-                      )
-                        void act(async () => {
-                          await api('entries', 'DELETE', { id: entry.id });
-                          await loadRecent();
-                        });
-                    }}
-                  >
-                    Delete entry
-                  </button>
+                  {editingEntry?.id === entry.id ? (
+                    <form
+                      className="gym-history-editor"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void act(saveHistoryEdit);
+                      }}
+                    >
+                      <label>
+                        Workout date
+                        <input
+                          type="date"
+                          value={editingEntry.date}
+                          onChange={(event) =>
+                            setEditingEntry({
+                              ...editingEntry,
+                              date: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      {editingEntry.mode === 'cardio' ? (
+                        <div className="gym-history-cardio-fields">
+                          <label>
+                            Minutes
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={editingEntry.cardio?.minutes ?? ''}
+                              onChange={(event) =>
+                                setEditingEntry({
+                                  ...editingEntry,
+                                  cardio: {
+                                    ...(editingEntry.cardio ?? emptyCardio()),
+                                    minutes:
+                                      event.target.value === ''
+                                        ? null
+                                        : Number(event.target.value),
+                                  },
+                                })
+                              }
+                            />
+                          </label>
+                          <label>
+                            Distance
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={editingEntry.cardio?.distance ?? ''}
+                              onChange={(event) =>
+                                setEditingEntry({
+                                  ...editingEntry,
+                                  cardio: {
+                                    ...(editingEntry.cardio ?? emptyCardio()),
+                                    distance:
+                                      event.target.value === ''
+                                        ? null
+                                        : Number(event.target.value),
+                                  },
+                                })
+                              }
+                            />
+                          </label>
+                          <label>
+                            Distance unit
+                            <select
+                              value={editingEntry.cardio?.distanceUnit ?? 'mi'}
+                              onChange={(event) =>
+                                setEditingEntry({
+                                  ...editingEntry,
+                                  cardio: {
+                                    ...(editingEntry.cardio ?? emptyCardio()),
+                                    distanceUnit: event.target.value as
+                                      | 'mi'
+                                      | 'km',
+                                  },
+                                })
+                              }
+                            >
+                              <option value="mi">mi</option>
+                              <option value="km">km</option>
+                            </select>
+                          </label>
+                          <label>
+                            Effort / 10
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              step="0.5"
+                              value={editingEntry.cardio?.effort ?? ''}
+                              onChange={(event) =>
+                                setEditingEntry({
+                                  ...editingEntry,
+                                  cardio: {
+                                    ...(editingEntry.cardio ?? emptyCardio()),
+                                    effort:
+                                      event.target.value === ''
+                                        ? null
+                                        : Number(event.target.value),
+                                  },
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <>
+                          <label>
+                            Load unit
+                            <select
+                              value={editingEntry.unit}
+                              onChange={(event) =>
+                                setEditingEntry({
+                                  ...editingEntry,
+                                  unit: event.target.value as 'lb' | 'kg',
+                                })
+                              }
+                            >
+                              <option value="lb">lbs</option>
+                              <option value="kg">kg</option>
+                            </select>
+                          </label>
+                          <div className="gym-history-set-list">
+                            {editingEntry.sets.map((set, index) => (
+                              <div
+                                className="gym-history-set-edit"
+                                key={`${editingEntry.id}-${index}`}
+                              >
+                                <strong>Set {index + 1}</strong>
+                                <label>
+                                  Load
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="3000"
+                                    step="0.5"
+                                    value={set.weight}
+                                    onChange={(event) =>
+                                      updateEditingSet(index, {
+                                        weight: Number(event.target.value),
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  Reps
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="1000"
+                                    step="1"
+                                    value={set.reps}
+                                    onChange={(event) =>
+                                      updateEditingSet(index, {
+                                        reps: Number(event.target.value),
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label>
+                                  RIR
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    step="0.5"
+                                    value={setRir(set) ?? ''}
+                                    onChange={(event) =>
+                                      updateEditingSet(index, {
+                                        rir:
+                                          event.target.value === ''
+                                            ? null
+                                            : Number(event.target.value),
+                                        rpe: null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="gym-history-warmup">
+                                  Warm-up
+                                  <input
+                                    type="checkbox"
+                                    checked={set.warmup}
+                                    onChange={(event) =>
+                                      updateEditingSet(index, {
+                                        warmup: event.target.checked,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  aria-label={`Remove set ${index + 1}`}
+                                  onClick={() =>
+                                    setEditingEntry({
+                                      ...editingEntry,
+                                      sets: editingEntry.sets.filter(
+                                        (_, i) => i !== index
+                                      ),
+                                    })
+                                  }
+                                >
+                                  −
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingEntry({
+                                ...editingEntry,
+                                sets: [
+                                  ...editingEntry.sets,
+                                  {
+                                    weight: 0,
+                                    reps: 0,
+                                    rpe: null,
+                                    rir: DEFAULT_RIR,
+                                    warmup: false,
+                                  },
+                                ],
+                              })
+                            }
+                          >
+                            Add set
+                          </button>
+                        </>
+                      )}
+                      <label>
+                        Notes
+                        <textarea
+                          value={editingEntry.notes}
+                          onChange={(event) =>
+                            setEditingEntry({
+                              ...editingEntry,
+                              notes: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <div className="gym-row">
+                        <button className="gym-primary" disabled={busy}>
+                          Save changes
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setEditingEntry(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      {entry.mode === 'cardio' && entry.cardio ? (
+                        <p>{cardioSummary(entry.cardio)}</p>
+                      ) : (
+                        <ul className="gym-history-set-list">
+                          {entry.sets.map((set, index) => (
+                            <li key={`${entry.id}-${index}`}>
+                              Set {index + 1}: {set.weight}{' '}
+                              {unitLabel(entry.unit)} × {set.reps}
+                              {setRir(set) === null
+                                ? ''
+                                : ` · ${setRir(set)} RIR`}
+                              {set.warmup ? ' · Warm-up' : ''}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {entry.notes && <p className="gym-note">{entry.notes}</p>}
+                      <Media
+                        items={media.filter((m) =>
+                          entry.mediaIds.includes(m.id)
+                        )}
+                      />
+                      <div className="gym-row">
+                        <button
+                          disabled={busy || !!editingEntry}
+                          onClick={() =>
+                            setEditingEntry({
+                              ...entry,
+                              sets: entry.sets.map((set) => ({
+                                ...set,
+                                rir: setRir(set),
+                                rpe: null,
+                              })),
+                            })
+                          }
+                        >
+                          Edit entry
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                'Delete this saved workout? This cannot be undone.'
+                              )
+                            )
+                              void act(async () => {
+                                await api('entries', 'DELETE', {
+                                  id: entry.id,
+                                });
+                                await loadRecent();
+                              });
+                          }}
+                        >
+                          Delete entry
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </article>
               ))}
             </>

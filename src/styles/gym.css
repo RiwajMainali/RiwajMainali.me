@@ -401,6 +401,20 @@
     padding: 8px 10px;
   }
 }
+@media (max-width: 560px) {
+  .gym-history-set-edit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gym-history-set-edit > strong {
+    grid-column: 1 / -1;
+  }
+  .gym-history-set-edit > button {
+    justify-self: start;
+  }
+  .gym-history-cardio-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .gym .gym-results-title {
   font-size: 13px;
   font-weight: 650;
@@ -438,6 +452,46 @@
 .gym .gym-exercise-list .gym-exercise-choice > .gym-exercise-feedback:hover {
   color: var(--accent);
   background: #e9f0e8;
+}
+.gym-history-set-list {
+  list-style: none;
+  margin: 10px 0 16px;
+  padding: 0;
+}
+.gym-history-set-list li {
+  padding: 3px 0;
+}
+.gym-history-editor {
+  margin-top: 14px;
+}
+.gym-history-set-edit {
+  display: grid;
+  grid-template-columns: 56px repeat(4, minmax(62px, 1fr)) 40px;
+  gap: 8px;
+  align-items: end;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.gym-history-set-edit label,
+.gym-history-cardio-fields label {
+  min-width: 0;
+  margin: 0;
+}
+.gym-history-set-edit input {
+  padding: 8px 5px;
+}
+.gym-history-cardio-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.gym-history-editor .gym-row {
+  align-items: center;
+  margin-top: 14px;
+}
+.gym-history-editor .gym-row .gym-primary {
+  width: auto;
+  margin: 0;
 }
 
 .gym-download {
