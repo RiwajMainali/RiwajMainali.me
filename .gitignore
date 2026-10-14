@@ -40,3 +40,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# Private EC2 gym runtime files
+.gym-data/
+public/gym-source.tar.gz

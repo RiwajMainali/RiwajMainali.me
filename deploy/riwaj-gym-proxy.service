@@ -1,0 +1,25 @@
+[Unit]
+Description=HTTPS gateway for Riwaj gym on existing EC2
+After=network-online.target riwaj-gym.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=riwaj-gym-proxy
+Group=riwaj-gym-proxy
+Environment=HOME=/var/lib/riwaj-gym-proxy
+ExecStart=/usr/local/bin/riwaj-caddy run --config /etc/riwaj-gym.Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=5
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/riwaj-gym-proxy
+UMask=0077
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+{
+  "name": "riwaj-gym-backend",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "start": "node scripts/gym-backend.cjs",
+    "test": "node scripts/test-gym.cjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "12.6.2",
+    "zod": "^3.21.4",
+    "typescript": "^5.0.4"
+  }
+}

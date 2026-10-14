@@ -1,0 +1,16 @@
+{
+    email riwaj227@gmail.com
+    admin off
+}
+32-192-89-83.sslip.io {
+    @api path /api/gym/*
+    handle @api {
+        request_body {
+            max_size 51MB
+        }
+        reverse_proxy 127.0.0.1:3100
+    }
+    handle {
+        respond "Not found" 404
+    }
+}

@@ -53,6 +53,7 @@ const HELP = `available commands:
   cat <file>        print a file
   pwd, whoami, date, echo, history, clear
   blog, projects    jump to a section
+  gym               open the training log
   sdr [status]      what's on air in the background
   sdr speed <0.5-4> waterfall speed: slower is sharper, faster is blurrier`;
 
@@ -113,7 +114,7 @@ const INITIAL: Line[] = [
   line((ROOT.children['README.txt'] as File).body),
 ];
 
-const CHIPS = ['help', 'ls -a', 'cat README.txt', 'blog', 'clear'];
+const CHIPS = ['help', 'ls -a', 'cat README.txt', 'blog', 'gym', 'clear'];
 
 export default function Terminal() {
   const [lines, setLines] = useState<Line[]>(INITIAL);
@@ -206,6 +207,9 @@ export default function Terminal() {
         else newCwd = path;
         break;
       }
+      case 'gym':
+        window.location.assign('/gym');
+        return;
       case 'blog':
       case 'projects':
         newCwd = [cmd];

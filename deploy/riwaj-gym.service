@@ -1,0 +1,24 @@
+[Unit]
+Description=Riwaj gym API on existing EC2
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=riwaj-gym
+Group=riwaj-gym
+WorkingDirectory=/opt/riwaj-gym
+EnvironmentFile=/etc/riwaj-gym.env
+ExecStart=/opt/riwaj-node22/bin/node --max-old-space-size=192 scripts/gym-backend.cjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/riwaj-gym
+UMask=0077
+MemoryMax=320M
+
+[Install]
+WantedBy=multi-user.target

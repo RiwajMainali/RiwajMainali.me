@@ -1,0 +1,405 @@
+.gym {
+  --ink: #17231d;
+  --muted: #5b685f;
+  --line: #d5dcd5;
+  --paper: #fafbf8;
+  --accent: #225d47;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light;
+  font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  padding: 0 max(16px, calc((100vw - 1280px) / 2));
+  overflow-wrap: anywhere;
+}
+.gym * {
+  box-sizing: border-box;
+}
+.gym-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  min-height: 86px;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+}
+.gym-header > a {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+  text-decoration: none;
+}
+.gym-header > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.gym-header > span:last-child {
+  margin-left: auto;
+}
+.gym h1 {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+  margin: 0 0 16px;
+}
+.gym h2 {
+  font-size: 19px;
+  font-weight: 650;
+  margin: 0 0 12px;
+}
+.gym p {
+  margin: 12px 0;
+}
+.gym a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.gym button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 9px 14px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+.gym button:hover {
+  background: #edf2ec;
+}
+.gym button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.gym button:focus-visible,
+.gym input:focus-visible,
+.gym textarea:focus-visible,
+.gym select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.gym .gym-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  font-weight: 600;
+}
+.gym .gym-primary:hover {
+  background: #174735;
+}
+.gym label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 550;
+  margin: 10px 0;
+}
+.gym input,
+.gym textarea,
+.gym select {
+  font: inherit;
+  font-size: 16px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px;
+  min-height: 44px;
+  min-width: 0;
+  width: 100%;
+}
+.gym input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  accent-color: var(--accent);
+}
+.gym textarea {
+  resize: vertical;
+  min-height: 130px;
+}
+.gym fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.gym-tabs {
+  display: flex;
+  gap: 8px;
+  overflow: auto;
+  padding: 20px 0 12px;
+}
+.gym-tabs button {
+  border-color: transparent;
+  background: transparent;
+  white-space: nowrap;
+}
+.gym-tabs [aria-current='page'] {
+  background: #e6eee6;
+  border-color: #c4d4c7;
+  font-weight: 600;
+}
+.gym-status {
+  font-size: 13px;
+  color: var(--muted);
+  padding-bottom: 20px;
+  min-height: 40px;
+}
+.gym-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 24px;
+  margin-bottom: 20px;
+  min-width: 0;
+}
+.gym-layout {
+  display: grid;
+  grid-template-columns: 350px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.gym-library {
+  position: sticky;
+  top: 16px;
+}
+.gym-exercise-list {
+  max-height: 480px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 12px 0;
+}
+.gym-exercise-list button {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  width: 100%;
+  gap: 4px;
+  border: 0;
+  border-bottom: 1px solid #e8ece7;
+  border-radius: 0;
+  padding: 12px 8px;
+}
+.gym-exercise-list button strong {
+  text-transform: capitalize;
+  font-weight: 550;
+}
+.gym-exercise-list button span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.gym-exercise-list button.selected {
+  background: #e9f0e8;
+  border-left: 3px solid var(--accent);
+}
+.gym-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.gym-row label {
+  margin: 0;
+}
+.gym-muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+.gym-fields {
+  display: grid;
+  grid-template-columns: 1.4fr 0.7fr 1fr;
+  gap: 12px;
+}
+.gym-set,
+.gym-set-labels {
+  display: grid;
+  grid-template-columns: 28px minmax(60px, 1.2fr) minmax(50px, 1fr) minmax(
+      50px,
+      1fr
+    ) 54px 40px;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+.gym-set-labels {
+  font-size: 12px;
+  color: var(--muted);
+  padding-top: 12px;
+}
+.gym-set input {
+  padding: 9px 6px;
+}
+.gym-set button {
+  padding: 0;
+  font-size: 22px;
+}
+.gym-set > span {
+  font-size: 13px;
+}
+.gym-set input[type='checkbox'] {
+  justify-self: center;
+}
+.gym-error {
+  background: #fff1ed;
+  border: 1px solid #e8b2a4;
+  padding: 12px;
+  color: #8d3025;
+  border-radius: 5px;
+}
+.gym-conflict {
+  border-color: #b1913c;
+  background: #fffcf0;
+}
+.gym-conflict button {
+  margin: 6px;
+}
+.gym-target {
+  font-size: 24px;
+  font-weight: 650;
+}
+.gym svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gym details {
+  margin-top: 18px;
+}
+.gym summary {
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 0;
+}
+.gym table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.gym th,
+.gym td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.gym-note {
+  white-space: pre-wrap;
+}
+.gym-media {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.gym-media img,
+.gym-media video {
+  max-height: 300px;
+  max-width: 100%;
+  width: 100%;
+  object-fit: contain;
+  background: #f0f2ed;
+  border-radius: 4px;
+}
+.gym-media audio {
+  width: 100%;
+  max-width: 100%;
+}
+.gym-media figcaption {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+.gym-media figure {
+  margin: 0;
+  min-width: 0;
+}
+.gym-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding: 16px 0;
+}
+.gym-access {
+  max-width: 600px;
+  margin: 48px auto;
+}
+.gym footer {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+}
+.gym footer a {
+  margin-right: 10px;
+}
+@media (max-width: 800px) {
+  .gym-layout {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .gym-library {
+    position: static;
+  }
+  .gym-exercise-list {
+    max-height: 260px;
+  }
+  .gym-card {
+    padding: 18px;
+  }
+  .gym-header {
+    gap: 10px;
+  }
+  .gym-header > span:last-child {
+    margin-left: 0;
+  }
+  .gym-header > span:nth-child(2) {
+    display: none;
+  }
+}
+@media (max-width: 400px) {
+  .gym {
+    padding: 0 12px;
+  }
+  .gym-card {
+    padding: 14px;
+  }
+  .gym-set,
+  .gym-set-labels {
+    gap: 5px;
+    grid-template-columns: 22px minmax(48px, 1.2fr) minmax(40px, 1fr) minmax(
+        40px,
+        1fr
+      ) 44px 30px;
+  }
+  .gym-fields {
+    gap: 7px;
+    grid-template-columns: 1.4fr 0.7fr 1fr;
+  }
+  .gym-fields input,
+  .gym-fields select {
+    padding: 7px;
+    font-size: 14px;
+  }
+  .gym-set-labels {
+    font-size: 11px;
+  }
+  .gym-tabs {
+    gap: 2px;
+  }
+  .gym-tabs button {
+    padding: 8px 10px;
+  }
+}
