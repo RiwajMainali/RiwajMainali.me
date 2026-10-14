@@ -2,6 +2,12 @@ import type { Entry, Exercise, SetLog } from './types';
 const DAY = 86400000;
 export const kg = (weight: number, unit: string) =>
   unit === 'lb' ? weight * 0.45359237 : weight;
+// Inverse of the existing Epley estimate; preserve the measured-single convention.
+export function predictedRepMax(oneRepMax: number, reps: number) {
+  if (!Number.isInteger(reps) || reps < 1 || reps > 15)
+    throw new RangeError('Prediction reps must be an integer from 1 to 15');
+  return reps === 1 ? oneRepMax : oneRepMax / (1 + reps / 30);
+}
 export function estimatedMax(set: SetLog) {
   if (set.warmup || set.weight <= 0 || set.reps < 1 || set.reps > 12)
     return null;

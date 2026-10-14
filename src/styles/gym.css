@@ -413,4 +413,13 @@
   padding-left: 6px;
 }
 
-.gym-download { display: inline-block; margin: 0.75rem; }
+.gym-download {
+  display: inline-block;
+  margin: 0.75rem;
+}
+
+.gym input[type='range'] {
+  padding: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}

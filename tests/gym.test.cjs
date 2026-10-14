@@ -225,3 +225,16 @@ test('users can export all their records and synced draft, with no other users o
  const csv=await request('export?format=csv');assert.equal(csv.statusCode,200);const text=Buffer.concat(csv.parts).toString();assert.match(text,/duration_minutes/);assert.match(text,/cardio/);assert.match(text,/'=HYPERLINK/);assert.equal(text.includes('BOB_PRIVATE'),false);
  assert.equal((await request('export?format=html')).statusCode,400);
 });
+
+
+test('rep-max prediction preserves 1RM and decreases consistently through 15RM',()=>{
+ const {predictedRepMax,estimatedMax}=require('../src/lib/gym/progress.ts');
+ assert.equal(predictedRepMax(150,1),150);
+ assert.equal(predictedRepMax(150,15),100);
+ const baseline=estimatedMax({weight:100,reps:8,warmup:false});
+ assert.ok(Math.abs(predictedRepMax(baseline,8)-100)<1e-9);
+ for(let reps=2;reps<=15;reps++)assert.ok(predictedRepMax(150,reps)<predictedRepMax(150,reps-1));
+ assert.throws(()=>predictedRepMax(150,0),RangeError);
+ assert.throws(()=>predictedRepMax(150,16),RangeError);
+ assert.throws(()=>predictedRepMax(150,2.5),RangeError);
+});

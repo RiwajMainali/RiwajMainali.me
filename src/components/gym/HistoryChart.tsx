@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Entry } from '../../lib/gym/types';
 import { unitLabel } from '../../lib/gym/types';
-import { historyPoints } from '../../lib/gym/progress';
+import { historyPoints, predictedRepMax } from '../../lib/gym/progress';
 export default function HistoryChart({
   entries,
   forecast,
@@ -14,19 +14,31 @@ export default function HistoryChart({
   const [metric, setMetric] = useState<'max' | 'load' | 'volume' | 'reps'>(
     'max'
   );
+  const [predictionReps, setPredictionReps] = useState(1);
+  const metricLabel =
+    metric === 'max'
+      ? `Predicted ${predictionReps}RM (${unitLabel(unit)})`
+      : metric === 'load'
+      ? `Heaviest load (${unitLabel(unit)})`
+      : metric === 'volume'
+      ? `Volume (${unitLabel(unit)}·reps)`
+      : 'Total working reps';
   const factor = unit === 'lb' ? 1 / 0.45359237 : 1;
   const points = historyPoints(entries)
     .filter((p) => p[metric] !== null)
     .map((p) => ({
       date: p.date,
-      value: p[metric]! * (metric === 'reps' ? 1 : factor),
+      value:
+        (metric === 'max'
+          ? predictedRepMax(p.max!, predictionReps)
+          : p[metric]!) * (metric === 'reps' ? 1 : factor),
       forecast: false,
     }));
   const future =
     metric === 'max' && points.length
       ? forecast.map((p) => ({
           date: p.date,
-          value: p.max * factor,
+          value: predictedRepMax(p.max, predictionReps) * factor,
           forecast: true,
         }))
       : [];
@@ -50,16 +62,45 @@ export default function HistoryChart({
             value={metric}
             onChange={(e) => setMetric(e.target.value as typeof metric)}
           >
-            <option value="max">Estimated 1RM</option>
+            <option value="max">Rep max prediction</option>
             <option value="load">Heaviest load</option>
             <option value="volume">Volume</option>
             <option value="reps">Total working reps</option>
           </select>
         </label>
       </div>
+      {metric === 'max' && (
+        <>
+          <label htmlFor="gym-rep-max">
+            Rep max prediction: {predictionReps}RM
+            <input
+              id="gym-rep-max"
+              type="range"
+              min="1"
+              max="15"
+              step="1"
+              value={predictionReps}
+              aria-valuetext={`${predictionReps} rep maximum`}
+              onChange={(e) => setPredictionReps(Number(e.target.value))}
+            />
+          </label>
+          <div className="gym-row">
+            <span>1RM</span>
+            <span>15RM</span>
+          </div>
+          {points.length > 0 && (
+            <p role="status">
+              Latest predicted {predictionReps}RM:{' '}
+              <strong>
+                {points[points.length - 1]!.value.toFixed(1)} {unitLabel(unit)}
+              </strong>
+            </p>
+          )}
+        </>
+      )}
       <p className="gym-muted">
         {metric === 'max'
-          ? 'Epley estimate from working sets of 1–12 reps; higher-rep sets are excluded.'
+          ? `Predicted ${predictionReps}-rep maximum weight from your working sets of 1–12 reps using the Epley formula. Sets above 12 reps are excluded from the baseline. Higher-rep predictions are less precise; effort, technique and endurance affect the result.`
           : metric === 'volume'
           ? `Working-set load × reps (${unitLabel(
               unit
@@ -75,7 +116,7 @@ export default function HistoryChart({
           <svg
             viewBox="0 0 700 235"
             role="img"
-            aria-label={`${metric} history, with dashed projections when available`}
+            aria-label={`${metricLabel} history, with dashed projections when available`}
           >
             {[0, 0.5, 1].map((f) => (
               <g key={f}>
@@ -119,7 +160,8 @@ export default function HistoryChart({
               return (
                 <circle key={p.date} cx={cx} cy={cy} r="4" fill="#225d47">
                   <title>
-                    {p.date}: {p.value.toFixed(1)}
+                    {p.date}: {p.value.toFixed(1)}{' '}
+                    {metric === 'reps' ? 'reps' : unitLabel(unit)}
                   </title>
                 </circle>
               );
@@ -137,7 +179,7 @@ export default function HistoryChart({
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>{metric}</th>
+                  <th>{metricLabel}</th>
                 </tr>
               </thead>
               <tbody>
