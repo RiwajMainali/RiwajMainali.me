@@ -8,10 +8,18 @@ import type {
   Exercise,
   DraftSet,
 } from '../../lib/gym/types';
-import { unitLabel } from '../../lib/gym/types';
+import {
+  unitLabel,
+  emptyCardio,
+  workoutMode,
+  isCardioExercise,
+  cardioSummary,
+} from '../../lib/gym/types';
 import { progression } from '../../lib/gym/progress';
 import { useSyncedDraft } from '../../components/gym/useSyncedDraft';
 import HistoryChart from '../../components/gym/HistoryChart';
+import CardioFields from '../../components/gym/CardioFields';
+import CardioHistory from '../../components/gym/CardioHistory';
 type User = { id: string; name: string; status: string; owner: boolean };
 type Library = {
   suggested?: (Exercise & { reason: string })[];
@@ -52,6 +60,7 @@ export default function Gym() {
       name: '',
       equipment: 'dumbbell',
       muscle: '',
+      category: 'strength',
     }),
     [message, setMessage] = useState('');
   const [members, setMembers] = useState<
@@ -60,6 +69,7 @@ export default function Gym() {
   const enabled = user?.status === 'approved';
   const draftSync = useSyncedDraft(enabled);
   const { draft, change } = draftSync;
+  const cardioMode = workoutMode(draft, selected) === 'cardio';
   const pendingSave = useRef<{
     id: string;
     revision: number;
@@ -67,10 +77,10 @@ export default function Gym() {
   } | null>(null);
   const advice = useMemo(
     () =>
-      selected?.id === draft.exerciseId
+      !cardioMode && selected?.id === draft.exerciseId
         ? progression(history, selected, draft.tier)
         : null,
-    [history, selected, draft.tier]
+    [history, selected, draft.tier, cardioMode]
   );
   async function session() {
     try {
@@ -376,6 +386,7 @@ export default function Gym() {
           'History',
           'Notes',
           'Devices',
+          'Data',
           ...(user?.owner ? ['Members'] : []),
         ].map((t) => (
           <button
@@ -480,6 +491,20 @@ export default function Gym() {
                             change((d) => ({
                               ...d,
                               exerciseId: ex.id,
+                              mode: isCardioExercise(ex)
+                                ? 'cardio'
+                                : 'strength',
+                              cardio: emptyCardio(),
+                              sets: d.sets.length
+                                ? d.sets
+                                : [
+                                    {
+                                      weight: null,
+                                      reps: 8,
+                                      rpe: null,
+                                      warmup: false,
+                                    },
+                                  ],
                               tier:
                                 recent.find((e) => e.exerciseId === ex.id)
                                   ?.tier ?? 'auto',
@@ -510,6 +535,18 @@ export default function Gym() {
                           change((d) => ({
                             ...d,
                             exerciseId: ex.id,
+                            mode: isCardioExercise(ex) ? 'cardio' : 'strength',
+                            cardio: emptyCardio(),
+                            sets: d.sets.length
+                              ? d.sets
+                              : [
+                                  {
+                                    weight: null,
+                                    reps: 8,
+                                    rpe: null,
+                                    warmup: false,
+                                  },
+                                ],
                             tier:
                               recent.find((e) => e.exerciseId === ex.id)
                                 ?.tier ?? 'auto',
@@ -554,6 +591,20 @@ export default function Gym() {
                         change((d) => ({
                           ...d,
                           exerciseId: r.exercise.id,
+                          mode: isCardioExercise(r.exercise)
+                            ? 'cardio'
+                            : 'strength',
+                          cardio: emptyCardio(),
+                          sets: d.sets.length
+                            ? d.sets
+                            : [
+                                {
+                                  weight: null,
+                                  reps: 8,
+                                  rpe: null,
+                                  warmup: false,
+                                },
+                              ],
                           tier: 'auto',
                         }));
                         setQuery(r.exercise.name);
@@ -592,6 +643,18 @@ export default function Gym() {
                         }
                       />
                     </label>
+                    <label>
+                      Tracking type
+                      <select
+                        value={custom.category}
+                        onChange={(e) =>
+                          setCustom({ ...custom, category: e.target.value })
+                        }
+                      >
+                        <option value="strength">Strength</option>
+                        <option value="cardio">Cardio</option>
+                      </select>
+                    </label>
                     <button disabled={busy}>Add exercise</button>
                   </form>
                 </details>
@@ -600,10 +663,37 @@ export default function Gym() {
                 <section className="gym-card">
                   <h1>{selected?.name ?? 'Log a workout'}</h1>
                   <p className="gym-muted">
-                    One row per set. Log dumbbells per hand, barbells as total
-                    load, and use the same convention every session.
+                    {cardioMode
+                      ? 'Track time, optional distance and effort.'
+                      : 'One row per set. Log dumbbells per hand, barbells as total load, and use the same convention every session.'}
                   </p>
                   <fieldset disabled={busy}>
+                    <label>
+                      Tracking type
+                      <select
+                        value={cardioMode ? 'cardio' : 'strength'}
+                        onChange={(e) =>
+                          change((d) => ({
+                            ...d,
+                            mode: e.target.value as 'cardio' | 'strength',
+                            cardio: d.cardio ?? emptyCardio(),
+                            sets: d.sets.length
+                              ? d.sets
+                              : [
+                                  {
+                                    weight: null,
+                                    reps: 8,
+                                    rpe: null,
+                                    warmup: false,
+                                  },
+                                ],
+                          }))
+                        }
+                      >
+                        <option value="strength">Strength</option>
+                        <option value="cardio">Cardio</option>
+                      </select>
+                    </label>
                     <div className="gym-fields">
                       <label>
                         Date
@@ -616,164 +706,184 @@ export default function Gym() {
                           }
                         />
                       </label>
-                      <label>
-                        Units
-                        <select
-                          value={draft.unit}
-                          onChange={(e) => {
-                            const unit = e.target.value as 'lb' | 'kg';
-                            change((d) => {
-                              const factor =
-                                unit === 'kg' ? 0.45359237 : 1 / 0.45359237;
-                              return {
-                                ...d,
-                                unit,
-                                bodyweight:
-                                  d.bodyweight === null
-                                    ? null
-                                    : Math.round(d.bodyweight * factor * 100) /
-                                      100,
-                                sets: d.sets.map((s) => ({
-                                  ...s,
+                      {!cardioMode && (
+                        <>
+                          <label>
+                            Units
+                            <select
+                              value={draft.unit}
+                              onChange={(e) => {
+                                const unit = e.target.value as 'lb' | 'kg';
+                                change((d) => {
+                                  const factor =
+                                    unit === 'kg' ? 0.45359237 : 1 / 0.45359237;
+                                  return {
+                                    ...d,
+                                    unit,
+                                    bodyweight:
+                                      d.bodyweight === null
+                                        ? null
+                                        : Math.round(
+                                            d.bodyweight * factor * 100
+                                          ) / 100,
+                                    sets: d.sets.map((s) => ({
+                                      ...s,
+                                      weight:
+                                        s.weight === null
+                                          ? null
+                                          : Math.round(
+                                              s.weight * factor * 100
+                                            ) / 100,
+                                    })),
+                                  };
+                                });
+                              }}
+                            >
+                              <option value="lb">lbs</option>
+                              <option value="kg">kg</option>
+                            </select>
+                          </label>
+                          <label>
+                            Bodyweight ({unitLabel(draft.unit)})
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min="1"
+                              max="1500"
+                              step="0.1"
+                              value={draft.bodyweight ?? ''}
+                              onChange={(e) =>
+                                change((d) => ({
+                                  ...d,
+                                  bodyweight: e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
+                                }))
+                              }
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                    {cardioMode ? (
+                      <CardioFields
+                        value={draft.cardio ?? emptyCardio()}
+                        onChange={(cardio) =>
+                          change((d) => ({ ...d, mode: 'cardio', cardio }))
+                        }
+                      />
+                    ) : (
+                      <>
+                        <div className="gym-set-labels">
+                          <span>Set</span>
+                          <span>{unitLabel(draft.unit)}</span>
+                          <span>Reps</span>
+                          <span>RPE</span>
+                          <span>Warmup</span>
+                          <span />
+                        </div>
+                        {draft.sets.map((s, i) => (
+                          <div className="gym-set" key={i}>
+                            <span>{i + 1}</span>
+                            <input
+                              aria-label={`Set ${i + 1} weight in ${unitLabel(
+                                draft.unit
+                              )}`}
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              max="3000"
+                              step="0.25"
+                              value={s.weight ?? ''}
+                              required
+                              onFocus={(e) => e.currentTarget.select()}
+                              onChange={(e) =>
+                                updateSet(i, {
                                   weight:
-                                    s.weight === null
+                                    e.target.value === ''
                                       ? null
-                                      : Math.round(s.weight * factor * 100) /
-                                        100,
-                                })),
-                              };
-                            });
-                          }}
-                        >
-                          <option value="lb">lbs</option>
-                          <option value="kg">kg</option>
-                        </select>
-                      </label>
-                      <label>
-                        Bodyweight ({unitLabel(draft.unit)})
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min="1"
-                          max="1500"
-                          step="0.1"
-                          value={draft.bodyweight ?? ''}
-                          onChange={(e) =>
-                            change((d) => ({
-                              ...d,
-                              bodyweight: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            }))
-                          }
-                        />
-                      </label>
-                    </div>
-                    <div className="gym-set-labels">
-                      <span>Set</span>
-                      <span>{unitLabel(draft.unit)}</span>
-                      <span>Reps</span>
-                      <span>RPE</span>
-                      <span>Warmup</span>
-                      <span />
-                    </div>
-                    {draft.sets.map((s, i) => (
-                      <div className="gym-set" key={i}>
-                        <span>{i + 1}</span>
-                        <input
-                          aria-label={`Set ${i + 1} weight in ${unitLabel(
-                            draft.unit
-                          )}`}
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          max="3000"
-                          step="0.25"
-                          value={s.weight ?? ''}
-                          required
-                          onFocus={(e) => e.currentTarget.select()}
-                          onChange={(e) =>
-                            updateSet(i, {
-                              weight:
-                                e.target.value === ''
-                                  ? null
-                                  : Number(e.target.value),
-                            })
-                          }
-                        />
-                        <input
-                          aria-label={`Set ${i + 1} reps`}
-                          type="number"
-                          inputMode="numeric"
-                          min="1"
-                          max="1000"
-                          value={s.reps ?? ''}
-                          required
-                          onFocus={(e) => e.currentTarget.select()}
-                          onChange={(e) =>
-                            updateSet(i, {
-                              reps:
-                                e.target.value === ''
-                                  ? null
-                                  : Number(e.target.value),
-                            })
-                          }
-                        />
-                        <input
-                          aria-label={`Set ${i + 1} RPE`}
-                          type="number"
-                          inputMode="decimal"
-                          min="1"
-                          max="10"
-                          step="0.5"
-                          placeholder="—"
-                          value={s.rpe ?? ''}
-                          onChange={(e) =>
-                            updateSet(i, {
-                              rpe: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            })
-                          }
-                        />
-                        <input
-                          aria-label={`Set ${i + 1} is a warmup`}
-                          type="checkbox"
-                          checked={s.warmup}
-                          onChange={(e) =>
-                            updateSet(i, { warmup: e.target.checked })
-                          }
-                        />
+                                      : Number(e.target.value),
+                                })
+                              }
+                            />
+                            <input
+                              aria-label={`Set ${i + 1} reps`}
+                              type="number"
+                              inputMode="numeric"
+                              min="1"
+                              max="1000"
+                              value={s.reps ?? ''}
+                              required
+                              onFocus={(e) => e.currentTarget.select()}
+                              onChange={(e) =>
+                                updateSet(i, {
+                                  reps:
+                                    e.target.value === ''
+                                      ? null
+                                      : Number(e.target.value),
+                                })
+                              }
+                            />
+                            <input
+                              aria-label={`Set ${i + 1} RPE`}
+                              type="number"
+                              inputMode="decimal"
+                              min="1"
+                              max="10"
+                              step="0.5"
+                              placeholder="—"
+                              value={s.rpe ?? ''}
+                              onChange={(e) =>
+                                updateSet(i, {
+                                  rpe: e.target.value
+                                    ? Number(e.target.value)
+                                    : null,
+                                })
+                              }
+                            />
+                            <input
+                              aria-label={`Set ${i + 1} is a warmup`}
+                              type="checkbox"
+                              checked={s.warmup}
+                              onChange={(e) =>
+                                updateSet(i, { warmup: e.target.checked })
+                              }
+                            />
+                            <button
+                              aria-label={`Remove set ${i + 1}`}
+                              disabled={draft.sets.length === 1}
+                              onClick={() =>
+                                change((d) => ({
+                                  ...d,
+                                  sets: d.sets.filter((_, n) => n !== i),
+                                }))
+                              }
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
                         <button
-                          aria-label={`Remove set ${i + 1}`}
-                          disabled={draft.sets.length === 1}
+                          disabled={draft.sets.length >= 100}
                           onClick={() =>
                             change((d) => ({
                               ...d,
-                              sets: d.sets.filter((_, n) => n !== i),
+                              sets: [
+                                ...d.sets,
+                                { ...d.sets[d.sets.length - 1]! },
+                              ],
                             }))
                           }
                         >
-                          ×
+                          + Add set
                         </button>
-                      </div>
-                    ))}
-                    <button
-                      disabled={draft.sets.length >= 100}
-                      onClick={() =>
-                        change((d) => ({
-                          ...d,
-                          sets: [...d.sets, { ...d.sets[d.sets.length - 1]! }],
-                        }))
-                      }
-                    >
-                      + Add set
-                    </button>
-                    <p className="gym-muted">
-                      Weight and reps are required to save; use 0 for no
-                      external weight. RPE 10 = no reps left, 9 ≈ 1 left, 8 ≈ 2
-                      left. Leave blank if unknown.
-                    </p>
+                        <p className="gym-muted">
+                          Weight and reps are required to save; use 0 for no
+                          external weight. RPE 10 = no reps left, 9 ≈ 1 left, 8
+                          ≈ 2 left. Leave blank if unknown.
+                        </p>
+                      </>
+                    )}
                     <label>
                       Session notes
                       <textarea
@@ -793,9 +903,12 @@ export default function Gym() {
                       disabled={
                         !draft.exerciseId ||
                         draftSync.conflict ||
-                        draft.sets.some(
-                          (s) => s.weight === null || s.reps === null
-                        )
+                        (cardioMode
+                          ? !draft.cardio?.minutes
+                          : !draft.sets.length ||
+                            draft.sets.some(
+                              (s) => s.weight === null || s.reps === null
+                            ))
                       }
                       onClick={() => void act(save)}
                     >
@@ -805,7 +918,12 @@ export default function Gym() {
                 </section>
                 <section className="gym-card">
                   <h2>Next session</h2>
-                  {historyBusy ? (
+                  {cardioMode ? (
+                    <p>
+                      Use your time, distance and effort history to compare
+                      sessions. Keep conditions similar when comparing pace.
+                    </p>
+                  ) : historyBusy ? (
                     <p>Loading complete history…</p>
                   ) : historyError ? (
                     <p role="alert">{historyError}</p>
@@ -874,22 +992,25 @@ export default function Gym() {
             <>
               <h1>{selected?.name ?? 'Workout history'}</h1>
               <p>
-                Select a lift in Log to graph it. History below shows the latest
-                200 entries; the selected lift’s chart loads its complete
-                history.
+                Select an exercise in Log to graph it. History below shows the
+                latest 200 entries; the selected exercise’s chart loads its
+                complete history.
               </p>
               {historyBusy ? (
                 <p>Loading complete lift history…</p>
               ) : historyError ? (
                 <p role="alert">{historyError}</p>
               ) : (
-                selected && (
+                selected &&
+                (cardioMode ? (
+                  <CardioHistory entries={history} />
+                ) : (
                   <HistoryChart
                     entries={history}
                     forecast={advice?.forecast ?? []}
                     unit={draft.unit}
                   />
-                )
+                ))
               )}
               {recent.length === 0 && <p>No workouts saved yet.</p>}
               {recent.map((entry) => (
@@ -900,6 +1021,8 @@ export default function Gym() {
                         change((d) => ({
                           ...d,
                           exerciseId: entry.exerciseId,
+                          mode: entry.mode,
+                          cardio: d.cardio ?? emptyCardio(),
                           tier: entry.tier,
                         }));
                         setTab('History');
@@ -910,14 +1033,18 @@ export default function Gym() {
                     <time>{entry.date}</time>
                   </div>
                   <p>
-                    {entry.sets
-                      .map(
-                        (s) =>
-                          `${s.weight} ${unitLabel(entry.unit)} × ${s.reps}${
-                            s.rpe === null ? '' : ` @${s.rpe}`
-                          }${s.warmup ? ' (warmup)' : ''}`
-                      )
-                      .join(' · ')}
+                    {entry.mode === 'cardio' && entry.cardio
+                      ? cardioSummary(entry.cardio)
+                      : entry.sets
+                          .map(
+                            (s) =>
+                              `${s.weight} ${unitLabel(entry.unit)} × ${
+                                s.reps
+                              }${s.rpe === null ? '' : ` @${s.rpe}`}${
+                                s.warmup ? ' (warmup)' : ''
+                              }`
+                          )
+                          .join(' · ')}
                   </p>
                   {entry.notes && <p className="gym-note">{entry.notes}</p>}
                   <Media
@@ -942,6 +1069,61 @@ export default function Gym() {
                 </article>
               ))}
             </>
+          )}
+          {tab === 'Data' && (
+            <section className="gym-card">
+              <h1>Export your data</h1>
+              <p>
+                Export all your saved workouts, not just the latest 200. JSON
+                includes your profile, notes, synced draft, exercise definitions
+                and attachment metadata. CSV contains saved workouts, one row
+                per strength set or cardio session.
+              </p>
+              <button
+                disabled={busy || draftSync.conflict}
+                onClick={() =>
+                  void act(async () => {
+                    await draftSync.sync();
+                    const r = await fetch('/api/gym/export');
+                    if (!r.ok) throw new Error('Export failed');
+                    const url = URL.createObjectURL(await r.blob());
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `gym-data-${new Date()
+                      .toISOString()
+                      .slice(0, 10)}.json`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                  })
+                }
+              >
+                Download JSON
+              </button>
+              <a
+                className="gym-download"
+                href="/api/gym/export?format=csv"
+                download
+              >
+                Download CSV
+              </a>
+              <h2>Attachments</h2>
+              <p>
+                Photos, videos and audio are separate downloads. Their IDs and
+                filenames are included in the JSON export.
+              </p>
+              {!media.length && <p>No attachments uploaded.</p>}
+              {media.map((m) => (
+                <p key={m.id}>
+                  <a
+                    href={`/api/gym/media/${m.id}?download=1`}
+                    download={m.name}
+                  >
+                    {m.name}
+                  </a>{' '}
+                  · {m.id}
+                </p>
+              ))}
+            </section>
           )}
           {tab === 'Notes' && (
             <section className="gym-card">

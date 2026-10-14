@@ -22,7 +22,12 @@ import {
   exerciseIdentity,
   type ExerciseUsage,
 } from '../lib/gym/search';
-import { emptyDraft, type Draft, type Exercise } from '../lib/gym/types';
+import {
+  emptyDraft,
+  workoutMode,
+  type Draft,
+  type Exercise,
+} from '../lib/gym/types';
 import { upload, serveMedia } from '../lib/gym/media';
 export const config = { api: { bodyParser: false, responseLimit: false } };
 export default async function handler(
@@ -286,6 +291,7 @@ export default async function handler(
             name: z.string().trim().min(2).max(150),
             equipment: z.string().trim().min(1).max(50),
             muscle: z.string().trim().min(1).max(50),
+            category: z.enum(['strength', 'cardio']).default('strength'),
           })
           .parse(await readJson(req));
         if (queryVariants(b.name).length > 1)
@@ -309,7 +315,7 @@ export default async function handler(
             'Equivalent variations already exist. Select one from exercise search.'
           );
         limited('custom:' + user.id, 100, 86400);
-        const e = { ...b, id: id(), bodyPart: 'custom', category: 'strength' };
+        const e = { ...b, id: id(), bodyPart: 'custom', category: b.category };
         db()
           .prepare(
             'INSERT INTO exercises VALUES(@id,@name,@equipment,@muscle,@bodyPart,@category,@owner_id)'
@@ -344,6 +350,146 @@ export default async function handler(
         ...result,
         equipments: [...new Set(available.map((e) => e.equipment))].sort(),
       });
+    }
+    if (route === 'export') {
+      requireMethod(req, 'GET');
+      const format = String(req.query.format ?? 'json');
+      if (!['json', 'csv'].includes(format))
+        throw new ApiError(400, 'Choose JSON or CSV');
+      const data = db().transaction(() => {
+        const rows = db()
+          .prepare(
+            'SELECT e.id,e.content,e.created_at,x.name exercise FROM entries e JOIN exercises x ON x.id=e.exercise_id WHERE e.user_id=? ORDER BY e.created_at,e.id'
+          )
+          .all(user.id) as {
+          id: string;
+          content: string;
+          created_at: string;
+          exercise: string;
+        }[];
+        const draft = db()
+          .prepare(
+            'SELECT content,revision,updated_at FROM drafts WHERE user_id=?'
+          )
+          .get(user.id) as
+          | { content: string; revision: number; updated_at: string }
+          | undefined;
+        return {
+          schemaVersion: 1,
+          exportedAt: new Date().toISOString(),
+          user: { id: user.id, name: user.name, email: user.email },
+          entries: rows.map((r) => ({
+            ...JSON.parse(r.content),
+            id: r.id,
+            exercise: r.exercise,
+            createdAt: r.created_at,
+          })),
+          draft: draft
+            ? {
+                content: JSON.parse(draft.content),
+                revision: draft.revision,
+                updatedAt: draft.updated_at,
+              }
+            : null,
+          exercises: db()
+            .prepare(
+              'SELECT id,name,equipment,muscle,bodyPart,category FROM exercises WHERE owner_id=? OR id IN (SELECT exercise_id FROM entries WHERE user_id=?) OR id=?'
+            )
+            .all(
+              user.id,
+              user.id,
+              draft ? JSON.parse(draft.content).exerciseId : ''
+            ),
+          media: db()
+            .prepare(
+              'SELECT id,name,type,size,created_at createdAt FROM media WHERE user_id=? ORDER BY created_at,id'
+            )
+            .all(user.id),
+        };
+      })();
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="gym-data-${new Date()
+          .toISOString()
+          .slice(0, 10)}.${format}"`
+      );
+      if (format === 'json') return res.json(data);
+      const header = [
+        'entry_id',
+        'date',
+        'exercise',
+        'type',
+        'set',
+        'weight',
+        'weight_unit',
+        'reps',
+        'rpe',
+        'warmup',
+        'duration_minutes',
+        'distance',
+        'distance_unit',
+        'effort',
+        'notes',
+        'media_ids',
+      ];
+      // Quote every field and neutralize spreadsheet formulas in user-entered text.
+      const cell = (v: unknown) =>
+        '"' +
+        String(v ?? '')
+          .replace(/^[\s]*[=+@-]/, (m) => "'" + m)
+          .replace(/"/g, '""') +
+        '"';
+      const rows: unknown[][] = [header];
+      for (const e of data.entries) {
+        const base = [e.id, e.date, e.exercise, e.mode ?? 'strength'];
+        if (e.mode === 'cardio')
+          rows.push([
+            ...base,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            e.cardio?.minutes,
+            e.cardio?.distance,
+            e.cardio?.distanceUnit,
+            e.cardio?.effort,
+            e.notes,
+            e.mediaIds.join(' '),
+          ]);
+        else
+          e.sets.forEach(
+            (
+              s: {
+                weight: number;
+                reps: number;
+                rpe: number | null;
+                warmup: boolean;
+              },
+              i: number
+            ) =>
+              rows.push([
+                ...base,
+                i + 1,
+                s.weight,
+                e.unit === 'lb' ? 'lbs' : 'kg',
+                s.reps,
+                s.rpe,
+                s.warmup,
+                '',
+                '',
+                '',
+                '',
+                e.notes,
+                e.mediaIds.join(' '),
+              ])
+          );
+      }
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      return res.end(
+        '\uFEFF' + rows.map((r) => r.map(cell).join(',')).join('\r\n')
+      );
     }
     if (route === 'draft') {
       requireMethod(req, 'GET', 'PUT');
@@ -443,14 +589,25 @@ export default async function handler(
           if (!row || row.revision !== b.revision)
             throw new ApiError(409, 'Draft changed; sync it before saving');
           const draft = draftSchema.parse(JSON.parse(row.content));
-          if (draft.sets.some((s) => s.weight === null || s.reps === null))
-            throw new ApiError(
-              400,
-              'Enter weight and reps for every set before saving. Use 0 for no external weight.'
-            );
           checkExerciseAndMedia(draft, user.id, true);
-          if (draft.sets.every((s) => s.warmup))
-            throw new ApiError(400, 'Add at least one working set');
+          const exercise = db()
+            .prepare('SELECT * FROM exercises WHERE id=?')
+            .get(draft.exerciseId) as Exercise;
+          draft.mode = workoutMode(draft, exercise);
+          if (draft.mode === 'cardio') {
+            if (!draft.cardio?.minutes)
+              throw new ApiError(400, 'Enter cardio duration before saving');
+            draft.sets = [];
+          } else {
+            if (draft.sets.some((s) => s.weight === null || s.reps === null))
+              throw new ApiError(
+                400,
+                'Enter weight and reps for every set before saving. Use 0 for no external weight.'
+              );
+            if (!draft.sets.length || draft.sets.every((s) => s.warmup))
+              throw new ApiError(400, 'Add at least one working set');
+            delete draft.cardio;
+          }
           db()
             .prepare('INSERT INTO entries VALUES(?,?,?,?,?)')
             .run(
@@ -466,6 +623,16 @@ export default async function handler(
             date: emptyDraft().date,
             notes: '',
             mediaIds: [],
+            ...(draft.mode === 'cardio'
+              ? {
+                  cardio: {
+                    ...draft.cardio!,
+                    minutes: null,
+                    distance: null,
+                    effort: null,
+                  },
+                }
+              : {}),
           };
           db()
             .prepare(

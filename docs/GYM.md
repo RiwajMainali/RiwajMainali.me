@@ -150,3 +150,8 @@ this change does not create cloud backup storage. Monitor disk headroom.
 - Video rep counting on this EC2, estimated exercise start/end, depth calibration
   and a small timeline editor with manual corrections. Existing uploads/playback
   are ready; automated motion analysis is not presented as complete.
+
+### Cardio and personal exports
+Cardio catalogue selections automatically use duration (minutes), optional distance (mi/km), and optional effort (1–10). Average pace is derived from time/distance; notes and private media work as for strength entries. Tracking type can be overridden, including for custom exercises. Saved cardio has `mode: cardio`, a `cardio` object, and empty `sets`; legacy strength records keep their original representation. Cardio charts aggregate daily duration or normalized distance. They do not use lifting tiers, estimated 1RM or rep recommendations. New cardio drafts reset time/distance/effort after save.
+
+The Data tab downloads all owned records as JSON (profile, full history, synced draft, exercise definitions and media metadata) or CSV (one row per strength set or cardio session). Attachment files download individually from authenticated, owner-scoped URLs. JSON/CSV contain no device tokens or other accounts' data; CSV neutralizes spreadsheet formulas in text fields. Exports have no history pagination limit and use a consistent database read transaction.

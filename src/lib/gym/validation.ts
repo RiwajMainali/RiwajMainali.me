@@ -1,5 +1,14 @@
 import { z } from 'zod';
 export const draftSchema = z.object({
+  mode: z.enum(['strength', 'cardio']).optional(),
+  cardio: z
+    .object({
+      minutes: z.number().positive().max(10080).nullable(),
+      distance: z.number().positive().max(10000).nullable(),
+      distanceUnit: z.enum(['mi', 'km']),
+      effort: z.number().min(1).max(10).multipleOf(0.5).nullable(),
+    })
+    .optional(),
   exerciseId: z.string().max(100),
   date: z
     .string()
@@ -23,7 +32,6 @@ export const draftSchema = z.object({
         warmup: z.boolean(),
       })
     )
-    .min(1)
     .max(100),
   notes: z.string().max(20000),
   mediaIds: z.array(z.string().uuid()).max(20),

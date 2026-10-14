@@ -9,7 +9,40 @@ export type DraftSet = Omit<SetLog, 'weight' | 'reps'> & {
   reps: number | null;
 };
 export const unitLabel = (unit: 'lb' | 'kg') => (unit === 'lb' ? 'lbs' : 'kg');
+export type CardioLog = {
+  minutes: number | null;
+  distance: number | null;
+  distanceUnit: 'mi' | 'km';
+  effort: number | null;
+};
+export const emptyCardio = (): CardioLog => ({
+  minutes: null,
+  distance: null,
+  distanceUnit: 'mi',
+  effort: null,
+});
+export const isCardioExercise = (e: Exercise) =>
+  e.category === 'cardio' || e.bodyPart === 'cardio';
+export const workoutMode = (d: Pick<Draft, 'mode'>, e: Exercise | null) =>
+  d.mode ?? (e && isCardioExercise(e) ? 'cardio' : 'strength');
+export function cardioPace(c: CardioLog) {
+  if (!c.minutes || !c.distance) return null;
+  const seconds = Math.round((c.minutes / c.distance) * 60);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(
+    2,
+    '0'
+  )} / ${c.distanceUnit}`;
+}
+export function cardioSummary(c: CardioLog) {
+  return `${c.minutes ?? '—'} min${
+    c.distance === null ? '' : ` · ${c.distance} ${c.distanceUnit}`
+  }${cardioPace(c) ? ` · ${cardioPace(c)}` : ''}${
+    c.effort === null ? '' : ` · effort ${c.effort}/10`
+  }`;
+}
 export type Draft = {
+  mode?: 'strength' | 'cardio';
+  cardio?: CardioLog;
   exerciseId: string;
   date: string;
   unit: 'lb' | 'kg';

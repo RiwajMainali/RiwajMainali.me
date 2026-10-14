@@ -20,6 +20,7 @@ export function historyPoints(entries: Entry[]) {
     }
   >();
   for (const e of entries) {
+    if (e.mode === 'cardio') continue;
     const point = dates.get(e.date) ?? {
       date: e.date,
       max: null,
@@ -44,6 +45,7 @@ export function progression(
   exercise: Exercise,
   override = 'auto'
 ) {
+  entries = entries.filter((e) => e.mode !== 'cardio');
   const points = historyPoints(entries);
   const last = [...entries].sort(
     (a, b) =>

@@ -176,7 +176,9 @@ export async function serveMedia(
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader(
     'Content-Disposition',
-    `inline; filename*=UTF-8''${encodeURIComponent(m.name)}`
+    `${
+      req.query.download === '1' ? 'attachment' : 'inline'
+    }; filename*=UTF-8''${encodeURIComponent(m.name)}`
   );
   res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');

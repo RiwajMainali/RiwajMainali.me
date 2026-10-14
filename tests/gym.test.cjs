@@ -190,3 +190,38 @@ test('empty weight and reps stay blank in synced drafts but cannot become comple
  assert.equal(draftSchema.safeParse({...draft,sets:[{weight:'75',reps:12,rpe:null,warmup:false}]}).success,false);
  const {unitLabel}=require('../src/lib/gym/types.ts');assert.equal(unitLabel('lb'),'lbs');assert.equal(unitLabel('kg'),'kg');
 });
+
+test('cardio saves time and optional distance without lifting sets; blanks sync and resets after save',async()=>{
+ const run=catalogue.find(e=>e.category==='cardio'&&/run/.test(e.name));
+ const {isCardioExercise,workoutMode,cardioPace}=require('../src/lib/gym/types.ts');
+ assert.equal(isCardioExercise(run),true);assert.equal(workoutMode(emptyDraft(),run),'cardio');assert.equal(workoutMode({mode:'strength'},run),'strength');
+ const draft={...emptyDraft(),exerciseId:run.id,mode:'cardio',sets:[],cardio:{minutes:null,distance:null,distanceUnit:'mi',effort:null},notes:'Easy run'};
+ let prior=(await request('draft')).payload;
+ let saved=await request('draft','PUT',{revision:prior.revision,draft});assert.equal(saved.statusCode,200);
+ assert.equal((await request('entries','POST',{id:randomUUID(),revision:saved.payload.revision})).statusCode,400);
+ draft.cardio={minutes:30,distance:3,distanceUnit:'mi',effort:5};
+ saved=await request('draft','PUT',{revision:saved.payload.revision,draft});assert.equal(saved.statusCode,200);
+ assert.deepEqual((await request('draft')).payload.draft.cardio,draft.cardio);
+ const eid=randomUUID();assert.equal((await request('entries','POST',{id:eid,revision:saved.payload.revision})).statusCode,201);
+ const e=(await request('entries')).payload.entries.find(e=>e.id===eid);assert.equal(e.mode,'cardio');assert.deepEqual(e.sets,[]);assert.equal(e.cardio.minutes,30);assert.equal(cardioPace(e.cardio),'10:00 / mi');
+ assert.deepEqual(historyPoints([e]),[]);
+ const next=(await request('draft')).payload;assert.equal(next.draft.cardio.minutes,null);assert.equal(next.draft.cardio.distance,null);assert.equal(next.draft.notes,'');
+ assert.equal(draftSchema.safeParse({...draft,cardio:{...draft.cardio,minutes:-1}}).success,false);
+ assert.equal(draftSchema.safeParse({...draft,cardio:{...draft.cardio,distance:0}}).success,false);
+ draft.cardio={minutes:20,distance:null,distanceUnit:'km',effort:null};
+ saved=await request('draft','PUT',{revision:next.revision,draft});assert.equal(saved.statusCode,200);
+ assert.equal((await request('entries','POST',{id:randomUUID(),revision:saved.payload.revision})).statusCode,201);
+});
+
+test('users can export all their records and synced draft, with no other users or credentials',async()=>{
+ const secretId=randomUUID();const secret={...entry('2026-01-01',99),notes:'BOB_PRIVATE'};
+ db().prepare('INSERT INTO entries VALUES(?,?,?,?,?)').run(secretId,bob,bench.id,JSON.stringify(secret),new Date().toISOString());
+ const before=db().prepare('SELECT count(*) n FROM entries WHERE user_id=?').get(alice).n;
+ db().transaction(()=>{for(let i=0;i<205;i++)db().prepare('INSERT INTO entries VALUES(?,?,?,?,?)').run(randomUUID(),alice,bench.id,JSON.stringify({...entry('2026-01-01',75),notes:'=HYPERLINK("bad")\nquoted, note'}),new Date().toISOString());})();
+ const exported=await request('export?userId='+bob);assert.equal(exported.statusCode,200);assert.equal(exported.payload.user.id,alice);assert.equal(exported.payload.entries.length,before+205);assert.ok(exported.payload.draft);
+ const serialized=JSON.stringify(exported.payload);assert.equal(serialized.includes('BOB_PRIVATE'),false);assert.equal(serialized.includes(cookies.alice),false);assert.match(exported.headers['content-disposition'],/attachment/);
+ assert.equal((await request('export','GET',undefined,'nobody')).statusCode,401);
+ const own=await request('export','GET',undefined,'bob');assert.equal(own.payload.entries.length,1);assert.equal(own.payload.entries[0].notes,'BOB_PRIVATE');
+ const csv=await request('export?format=csv');assert.equal(csv.statusCode,200);const text=Buffer.concat(csv.parts).toString();assert.match(text,/duration_minutes/);assert.match(text,/cardio/);assert.match(text,/'=HYPERLINK/);assert.equal(text.includes('BOB_PRIVATE'),false);
+ assert.equal((await request('export?format=html')).statusCode,400);
+});

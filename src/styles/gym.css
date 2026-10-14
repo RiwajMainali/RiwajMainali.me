@@ -412,3 +412,5 @@
   border-left: 2px solid #c4d4c7;
   padding-left: 6px;
 }
+
+.gym-download { display: inline-block; margin: 0.75rem; }
