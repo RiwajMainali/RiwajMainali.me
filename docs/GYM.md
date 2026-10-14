@@ -97,6 +97,10 @@ GYM_SMTP_USER=riwaj227@gmail.com
 GYM_SMTP_PASSWORD=<app password configured privately on server>
 ```
 
+For Gmail, the local helper `python3 scripts/configure-gym-mail.py` prompts for
+an app password with hidden input, writes it to EC2 over SSH stdin, and restarts
+only the gym API. It does not print the password or put it in command arguments.
+
 Runtime credentials are not included in this repo. Without working SMTP,
 registration deliberately returns an explicit error; owner access and workouts
 remain available. Test real delivery to the owner's mailbox before inviting users.
