@@ -423,3 +423,9 @@
   accent-color: var(--accent);
   cursor: pointer;
 }
+
+.gym-hard-set {
+  display: block;
+  font-size: 10px;
+  color: var(--accent);
+}

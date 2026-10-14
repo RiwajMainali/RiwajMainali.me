@@ -158,3 +158,6 @@ The Data tab downloads all owned records as JSON (profile, full history, synced 
 
 ### Volume views
 History → History view → Volume provides per-exercise daily totals, whole-day totals across all exercises, or daily totals for a chosen primary muscle group. The authenticated `/api/gym/volume` endpoint aggregates the user's full history into date/exercise rows, in kg·reps internally, without the 200-entry display limit. Views convert units consistently. Warmup sets and cardio are excluded. Compound movements count once toward the catalogue's primary muscle; secondary muscle work is not estimated. Actual bodyweight is not added to logged external load. Working-set and rep counts accompany volume totals.
+
+### Hard-set volume and opening view
+The gym opens in History → Volume → Per day (all exercises). Training volume defaults to hard-set counts: non-warmup strength sets with RPE >=7. New sets and next-session sets default to RPE 6. Existing recorded RPE is preserved; null effort counts as non-hard. The optional load-volume metric also sums only hard-set weight × reps. Exercise and primary-muscle daily filters share these rules, and hard bodyweight sets count even at zero external load.

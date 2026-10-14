@@ -12,9 +12,10 @@ export default function VolumeHistory({
   const [rows, setRows] = useState<VolumeRow[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
-  const [scope, setScope] = useState<'exercise' | 'day' | 'muscle'>('exercise');
+  const [scope, setScope] = useState<'exercise' | 'day' | 'muscle'>('day');
   const [exerciseId, setExerciseId] = useState(selectedExerciseId),
     [muscle, setMuscle] = useState('');
+  const [metric, setMetric] = useState<'sets' | 'volume'>('sets');
   const [unit, setUnit] = useState<'lb' | 'kg'>('lb');
   useEffect(() => {
     const controller = new AbortController();
@@ -54,14 +55,19 @@ export default function VolumeHistory({
       : scope === 'muscle'
       ? activeMuscle
       : exercises.find((e) => e.id === activeExercise)?.name ?? 'Exercise';
-  const max = Math.max(1, ...points.map((p) => p.volume)) * 1.1;
+  const metricLabel =
+    metric === 'sets'
+      ? 'Hard sets'
+      : `Hard-set load volume (${unitLabel(unit)}·reps)`;
+  const value = (p: { volume: number; sets: number }) => p[metric];
+  const max = Math.max(1, ...points.map(value)) * 1.1;
   const start = Date.parse(points[0]?.date ?? '2026-01-01'),
     end = Date.parse(points[points.length - 1]?.date ?? '2026-01-02');
-  const xy = (p: { date: string; volume: number }) =>
+  const xy = (p: { date: string; volume: number; sets: number }) =>
     `${
       55 +
       ((Date.parse(p.date) - start) / Math.max(86400000, end - start)) * 610
-    },${190 - (p.volume / max) * 155}`;
+    },${190 - (value(p) / max) * 155}`;
   return (
     <section className="gym-card" aria-label="Training volume">
       <h2>Volume history</h2>
@@ -108,22 +114,36 @@ export default function VolumeHistory({
             </select>
           </label>
         )}
-        <label htmlFor="volume-unit">
-          Volume units
+        <label htmlFor="volume-metric">
+          Volume metric
           <select
-            id="volume-unit"
-            value={unit}
-            onChange={(e) => setUnit(e.target.value as typeof unit)}
+            id="volume-metric"
+            value={metric}
+            onChange={(e) => setMetric(e.target.value as typeof metric)}
           >
-            <option value="lb">lbs·reps</option>
-            <option value="kg">kg·reps</option>
+            <option value="sets">Hard sets</option>
+            <option value="volume">Hard-set load × reps</option>
           </select>
         </label>
+        {metric === 'volume' && (
+          <label htmlFor="volume-unit">
+            Volume units
+            <select
+              id="volume-unit"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value as typeof unit)}
+            >
+              <option value="lb">lbs·reps</option>
+              <option value="kg">kg·reps</option>
+            </select>
+          </label>
+        )}
       </div>
       <p className="gym-muted">
-        Working-set weight × reps, summed by workout date across your full
-        history. Warmups and cardio excluded; bodyweight itself is not added.
-        Muscle totals use each exercise’s primary muscle once, without crediting
+        Training volume counts hard sets: RPE 7 or higher. New sets default to
+        RPE 6; blank RPE does not count. Load × reps includes only hard sets.
+        Warmups and cardio are excluded; bodyweight itself is not added. Muscle
+        totals use each exercise’s primary muscle once, without crediting
         secondary muscles.
       </p>
       {loading ? (
@@ -131,19 +151,19 @@ export default function VolumeHistory({
       ) : error ? (
         <p role="alert">{error}</p>
       ) : !points.length ? (
-        <p>No working sets logged for this view yet.</p>
+        <p>No strength sets logged for this view yet.</p>
       ) : (
         <>
           <h3>{name}</h3>
           <p>
-            Total: {points.reduce((n, p) => n + p.volume, 0).toFixed(1)}{' '}
-            {unitLabel(unit)}·reps · {points.reduce((n, p) => n + p.sets, 0)}{' '}
-            working sets
+            Total volume: {points.reduce((n, p) => n + p.sets, 0)} hard sets ·{' '}
+            {points.reduce((n, p) => n + p.volume, 0).toFixed(1)}{' '}
+            {unitLabel(unit)}·reps from hard sets
           </p>
           <svg
             viewBox="0 0 700 235"
             role="img"
-            aria-label={`${name} daily volume in ${unitLabel(unit)} times reps`}
+            aria-label={`${name} daily ${metricLabel}`}
           >
             {[0, 0.5, 1].map((f) => (
               <g key={f}>
@@ -170,7 +190,8 @@ export default function VolumeHistory({
               return (
                 <circle key={p.date} cx={cx} cy={cy} r="4" fill="#225d47">
                   <title>
-                    {p.date}: {p.volume.toFixed(1)} {unitLabel(unit)}·reps
+                    {p.date}: {value(p).toFixed(metric === 'sets' ? 0 : 1)}{' '}
+                    {metricLabel}
                   </title>
                 </circle>
               );
@@ -187,17 +208,17 @@ export default function VolumeHistory({
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Volume ({unitLabel(unit)}·reps)</th>
-                <th>Sets</th>
-                <th>Reps</th>
+                <th>Hard sets</th>
+                <th>Hard-set volume ({unitLabel(unit)}·reps)</th>
+                <th>Hard-set reps</th>
               </tr>
             </thead>
             <tbody>
               {points.map((p) => (
                 <tr key={p.date}>
                   <td>{p.date}</td>
-                  <td>{p.volume.toFixed(1)}</td>
                   <td>{p.sets}</td>
+                  <td>{p.volume.toFixed(1)}</td>
                   <td>{p.reps}</td>
                 </tr>
               ))}

@@ -1,4 +1,5 @@
 import type { Entry } from './types';
+import { isHardSet } from './types';
 import { kg } from './progress';
 export type VolumeRow = {
   date: string;
@@ -52,7 +53,7 @@ export function volumeRows(
       sets: 0,
       reps: 0,
     };
-    for (const s of working) {
+    for (const s of working.filter(isHardSet)) {
       row.volume += kg(s.weight, e.unit) * s.reps;
       row.sets++;
       row.reps += s.reps;

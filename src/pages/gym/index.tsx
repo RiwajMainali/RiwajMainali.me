@@ -10,6 +10,8 @@ import type {
 } from '../../lib/gym/types';
 import {
   unitLabel,
+  DEFAULT_RPE,
+  isHardSet,
   emptyCardio,
   workoutMode,
   isCardioExercise,
@@ -35,8 +37,8 @@ export default function Gym() {
   const [user, setUser] = useState<User | null>(null),
     [checked, setChecked] = useState(false),
     [error, setError] = useState('');
-  const [historyView, setHistoryView] = useState('exercise');
-  const [tab, setTab] = useState('Log'),
+  const [historyView, setHistoryView] = useState('volume');
+  const [tab, setTab] = useState('History'),
     [query, setQuery] = useState(''),
     [equipment, setEquipment] = useState(''),
     [offset, setOffset] = useState(0);
@@ -503,7 +505,7 @@ export default function Gym() {
                                     {
                                       weight: null,
                                       reps: 8,
-                                      rpe: null,
+                                      rpe: DEFAULT_RPE,
                                       warmup: false,
                                     },
                                   ],
@@ -545,7 +547,7 @@ export default function Gym() {
                                   {
                                     weight: null,
                                     reps: 8,
-                                    rpe: null,
+                                    rpe: DEFAULT_RPE,
                                     warmup: false,
                                   },
                                 ],
@@ -603,7 +605,7 @@ export default function Gym() {
                                 {
                                   weight: null,
                                   reps: 8,
-                                  rpe: null,
+                                  rpe: DEFAULT_RPE,
                                   warmup: false,
                                 },
                               ],
@@ -685,7 +687,7 @@ export default function Gym() {
                                   {
                                     weight: null,
                                     reps: 8,
-                                    rpe: null,
+                                    rpe: DEFAULT_RPE,
                                     warmup: false,
                                   },
                                 ],
@@ -786,7 +788,12 @@ export default function Gym() {
                         </div>
                         {draft.sets.map((s, i) => (
                           <div className="gym-set" key={i}>
-                            <span>{i + 1}</span>
+                            <span>
+                              {i + 1}
+                              {isHardSet(s) && (
+                                <small className="gym-hard-set">Hard</small>
+                              )}
+                            </span>
                             <input
                               aria-label={`Set ${i + 1} weight in ${unitLabel(
                                 draft.unit
@@ -872,7 +879,10 @@ export default function Gym() {
                               ...d,
                               sets: [
                                 ...d.sets,
-                                { ...d.sets[d.sets.length - 1]! },
+                                {
+                                  ...d.sets[d.sets.length - 1]!,
+                                  rpe: DEFAULT_RPE,
+                                },
                               ],
                             }))
                           }
@@ -882,7 +892,8 @@ export default function Gym() {
                         <p className="gym-muted">
                           Weight and reps are required to save; use 0 for no
                           external weight. RPE 10 = no reps left, 9 ≈ 1 left, 8
-                          ≈ 2 left. Leave blank if unknown.
+                          ≈ 2 left. New sets default to RPE 6. RPE 7+ counts as
+                          a hard set for volume; blank RPE does not count.
                         </p>
                       </>
                     )}
@@ -1008,9 +1019,9 @@ export default function Gym() {
                 </select>
               </label>
               <p>
-                Select an exercise in Log to graph it. History below shows the
-                latest 200 entries; the selected exercise’s chart loads its
-                complete history.
+                {historyView === 'volume'
+                  ? 'Volume includes your full history. Saved workouts below show the latest 200 entries.'
+                  : 'Select an exercise in Log to graph its full history. Saved workouts below show the latest 200 entries.'}
               </p>
               {historyView === 'volume' ? (
                 <VolumeHistory

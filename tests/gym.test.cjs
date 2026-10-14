@@ -263,3 +263,28 @@ test('volume endpoint uses full owned history, including records beyond the rece
  assert.equal((await request('volume','GET',undefined,'nobody')).statusCode,401);
  const other=await request('volume','GET',undefined,'bob');assert.equal(other.payload.rows.length,1);assert.equal(other.payload.rows[0].volume,99*8);assert.equal(other.payload.rows[0].muscle,'Chest');assert.equal(other.payload.rows[0].sets,1);
 });
+
+
+test('hard sets start at RPE 7; default 6, missing effort and warmups do not count toward volume',()=>{
+ const {isHardSet,DEFAULT_RPE}=require('../src/lib/gym/types.ts');
+ const {volumeRows,dailyVolume}=require('../src/lib/gym/volume.ts');
+ assert.equal(DEFAULT_RPE,6);assert.equal(emptyDraft().sets[0].rpe,6);
+ for(const rpe of [null,6,6.5])assert.equal(isHardSet({rpe,warmup:false}),false);
+ for(const rpe of [7,7.5,10])assert.equal(isHardSet({rpe,warmup:false}),true);
+ assert.equal(isHardSet({rpe:10,warmup:true}),false);
+ const e={...entry('2026-01-01',100),muscle:'pectorals',sets:[6,6.5,7,8,null].map(rpe=>({weight:100,reps:8,rpe,warmup:false}))};
+ e.sets.push({weight:500,reps:8,rpe:10,warmup:true});
+ const rows=volumeRows([e]);assert.equal(rows[0].sets,2);assert.equal(rows[0].volume,1600);assert.equal(rows[0].reps,16);
+ const easy={...e,sets:[{weight:100,reps:8,rpe:6,warmup:false}]};
+ assert.equal(volumeRows([easy])[0].sets,0);assert.equal(dailyVolume(volumeRows([easy]),'day','')[0].volume,0);
+ assert.equal(e.sets[4].rpe,null);
+});
+
+test('saved hard-set effort stays in history while next-session sets default to RPE 6',async()=>{
+ const prior=(await request('draft')).payload;
+ const draft={...emptyDraft(),exerciseId:bench.id,sets:[{weight:100,reps:8,rpe:7,warmup:false}]};
+ const saved=await request('draft','PUT',{revision:prior.revision,draft});assert.equal(saved.statusCode,200);
+ const id=randomUUID();assert.equal((await request('entries','POST',{id,revision:saved.payload.revision})).statusCode,201);
+ assert.equal((await request('entries')).payload.entries.find(e=>e.id===id).sets[0].rpe,7);
+ assert.equal((await request('draft')).payload.draft.sets[0].rpe,6);
+});

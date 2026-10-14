@@ -24,6 +24,7 @@ import {
 } from '../lib/gym/search';
 import {
   emptyDraft,
+  DEFAULT_RPE,
   workoutMode,
   type Draft,
   type Exercise,
@@ -646,6 +647,7 @@ export default async function handler(
           const next = {
             ...draft,
             date: emptyDraft().date,
+            sets: draft.sets.map((s) => ({ ...s, rpe: DEFAULT_RPE })),
             notes: '',
             mediaIds: [],
             ...(draft.mode === 'cardio'
