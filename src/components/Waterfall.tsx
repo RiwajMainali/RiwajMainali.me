@@ -690,7 +690,7 @@ export default function Waterfall() {
         speed = s;
         resize();
       });
-      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) raf = requestAnimationFrame(loop);
+      raf = requestAnimationFrame(loop);
     };
 
     const idle = window.requestIdleCallback
