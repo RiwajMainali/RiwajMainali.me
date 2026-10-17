@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import Link from 'next/link';
 import { mhz, sdr, SPEED_MAX, SPEED_MIN } from '~/lib/sdr';
 
 type File = { kind: 'file'; body: string };
@@ -15,7 +16,12 @@ const ROOT: Dir = dir({
       'type `help` for the full list. some things are hidden.',
   ),
   blog: dir({ 'coming-soon.txt': file('posts are being written. check back soon.') }),
-  projects: dir({ 'coming-soon.txt': file('projects are being polished. check back soon.') }),
+  projects: dir({
+    'gym.txt': file(
+      'Gym tracker — private training logs, synced drafts, and exercise progress.\n' +
+        'Read the case study: /projects/gym\nBrowse projects: /projects',
+    ),
+  }),
   '.bash_history': file('sudo make me a sandwich\nrm -rf / --no-preserve-root\ncat .secret\nexit'),
   '.secret': file('dGhlIG1hY2hpbmUgZ29kIGlzbid0IG9ubGluZSB5ZXQuIGNvbWUgYmFjayBzb29uLg=='),
 });
@@ -113,7 +119,7 @@ const INITIAL: Line[] = [
   line((ROOT.children['README.txt'] as File).body),
 ];
 
-const CHIPS = ['help', 'ls -a', 'cat README.txt', 'blog', 'clear'];
+const CHIPS = ['help', 'ls -a', 'cat README.txt', 'projects', 'blog', 'clear'];
 
 export default function Terminal() {
   const [lines, setLines] = useState<Line[]>(INITIAL);
@@ -207,10 +213,12 @@ export default function Terminal() {
         break;
       }
       case 'blog':
-      case 'projects':
         newCwd = [cmd];
         out.push((lookup([cmd, 'coming-soon.txt']) as File).body);
         break;
+      case 'projects':
+        window.location.assign('/projects');
+        return;
       case 'cat': {
         if (!args[0]) {
           out.push('cat: missing file operand');
@@ -386,6 +394,15 @@ export default function Terminal() {
         />
       </label>
       <div ref={endRef} />
+      <nav aria-label="Site navigation" className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
+        <Link
+          href="/projects"
+          onClick={(e) => e.stopPropagation()}
+          className="underline underline-offset-4 hover:text-white"
+        >
+          Browse projects →
+        </Link>
+      </nav>
       <div className="mt-6 flex flex-wrap gap-2">
         {CHIPS.map((c) => (
           <button
