@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import Link from 'next/link';
+import { profile } from '~/data/profile';
 import { mhz, sdr, SPEED_MAX, SPEED_MIN } from '~/lib/sdr';
 
 type File = { kind: 'file'; body: string };
@@ -10,6 +11,7 @@ const file = (body: string): File => ({ kind: 'file', body });
 const dir = (children: Record<string, Node>): Dir => ({ kind: 'dir', children });
 
 const ROOT: Dir = dir({
+  'about.txt': file(`${profile.name}\n${profile.bio}\nRead more: /about`),
   'README.txt': file(
     'welcome to riwaj.me.\n' +
       'this site is a shell. poke around with `ls`, `cd`, and `cat`.\n' +
@@ -59,6 +61,7 @@ const HELP = `available commands:
   cat <file>        print a file
   pwd, whoami, date, echo, history, clear
   blog, projects    jump to a section
+  about, contact    meet Riwaj or find his links
   sdr [status]      what's on air in the background
   sdr speed <0.5-4> waterfall speed: slower is sharper, faster is blurrier`;
 
@@ -219,6 +222,12 @@ export default function Terminal() {
       case 'projects':
         window.location.assign('/projects');
         return;
+      case 'about':
+        window.location.assign('/about');
+        return;
+      case 'contact':
+        window.location.assign('/about#contact');
+        return;
       case 'cat': {
         if (!args[0]) {
           out.push('cat: missing file operand');
@@ -236,7 +245,7 @@ export default function Terminal() {
         out.push(`/home/${USER}${cwd.length ? '/' + cwd.join('/') : ''}`);
         break;
       case 'whoami':
-        out.push(USER);
+        out.push(`${USER} — visiting ${profile.name}'s site. Type \`about\` to meet the person behind it.`);
         break;
       case 'date':
         out.push(new Date().toString());
@@ -402,6 +411,8 @@ export default function Terminal() {
         >
           Browse projects →
         </Link>
+        <Link href="/about" onClick={(e) => e.stopPropagation()} className="underline underline-offset-4 hover:text-white">About →</Link>
+        <Link href="/about#contact" onClick={(e) => e.stopPropagation()} className="underline underline-offset-4 hover:text-white">Contact →</Link>
       </nav>
       <div className="mt-6 flex flex-wrap gap-2">
         {CHIPS.map((c) => (
