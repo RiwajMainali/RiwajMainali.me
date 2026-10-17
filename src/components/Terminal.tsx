@@ -62,6 +62,7 @@ const HELP = `available commands:
   pwd, whoami, date, echo, history, clear
   blog, projects    jump to a section
   about, contact    meet Riwaj or find his links
+  resume            open Riwaj's résumé
   sdr [status]      what's on air in the background
   sdr speed <0.5-4> waterfall speed: slower is sharper, faster is blurrier`;
 
@@ -228,6 +229,13 @@ export default function Terminal() {
       case 'contact':
         window.location.assign('/about#contact');
         return;
+      case 'resume':
+        if (profile.resume) {
+          window.location.assign(profile.resume);
+          return;
+        }
+        out.push('A résumé is not published yet. Type `about` to see my work and links.');
+        break;
       case 'cat': {
         if (!args[0]) {
           out.push('cat: missing file operand');

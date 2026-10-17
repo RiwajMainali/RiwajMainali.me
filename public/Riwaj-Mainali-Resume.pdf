@@ -1,0 +1,100 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R /Annots [8 0 R 9 0 R 10 0 R] >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 4690 >>
+stream
+1 1 1 rg 0 0 612 792 re f
+BT /F2 24 Tf 0.08 0.2 0.16 rg 1 0 0 1 45 748 Tm (Riwaj Mainali) Tj ET
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 720 Tm (SIGINT Developer | Software Developer) Tj ET
+BT /F1 9 Tf 0.12 0.32 0.25 rg 1 0 0 1 45 706 Tm (LinkedIn / contact) Tj ET
+BT /F1 9 Tf 0.12 0.32 0.25 rg 1 0 0 1 200 706 Tm (riwaj.me) Tj ET
+BT /F1 9 Tf 0.12 0.32 0.25 rg 1 0 0 1 290 706 Tm (GitHub) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 681 Tm (SIGINT and software developer building automated data pipelines, cloud applications and) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 667 Tm (web interfaces with Python, TypeScript, React, Next.js and AWS.) Tj ET
+BT /F2 10 Tf 0.12 0.32 0.25 rg 1 0 0 1 45 643 Tm (EXPERIENCE) Tj ET
+0.75 0.8 0.78 RG 0.5 w 45 633 m 567 633 l S
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 622 Tm (Signal Intelligence Developer and Analyst) Tj ET
+BT /F1 9 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 608 Tm (US Navy | Feb 2025 - Present) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 593 Tm (- Designed and implemented an automated SIGINT data pipeline, reducing ingestion time) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 579 Tm (  by an estimated 20-30% and preparing data for faster analysis.) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 562 Tm (- Integrated the pipeline into a larger SIGINT project, automating data handoff to) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 548 Tm (  support downstream analysis.) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 531 Tm (- Coordinated with joint and interagency partners to integrate SIGINT tools and) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 517 Tm (  practices into mission planning.) Tj ET
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 495 Tm (Software Developer) Tj ET
+BT /F1 9 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 481 Tm (Aggregate Capital & Development Co. | May 2023 - Aug 2024) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 466 Tm (- Built inventory, repair-status and file-management systems for casino gaming) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 452 Tm (  machines, including endpoint testing for functionality, security and performance.) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 435 Tm (- Implemented OTP authentication with AWS Cognito, file storage with S3 and) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 421 Tm (  relational database management with RDS; wrote Python tooling for Unity animation) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 407 Tm (  files in DynamoDB.) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 390 Tm (- Developed React and Next.js progressive web interfaces integrating Unity games) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 376 Tm (  through WebAssembly, including offline functionality, server-side rendering and) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 362 Tm (  multi-format file upload and viewing.) Tj ET
+BT /F2 10 Tf 0.12 0.32 0.25 rg 1 0 0 1 45 333 Tm (EDUCATION) Tj ET
+0.75 0.8 0.78 RG 0.5 w 45 323 m 567 323 l S
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 312 Tm (University of Maryland Global Campus) Tj ET
+BT /F1 9 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 298 Tm (Master's Degree, Cyber/Electronic Operations and Warfare) Tj ET
+BT /F1 9 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 285 Tm (Apr 2026 - Expected Jul 2027 | In progress | GPA: 4.0) Tj ET
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 270 Tm (University of North Texas) Tj ET
+BT /F1 9 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 256 Tm (Bachelor's Degree, Computer Science) Tj ET
+BT /F1 9 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 243 Tm (2020 - May 2024) Tj ET
+BT /F2 10 Tf 0.12 0.32 0.25 rg 1 0 0 1 45 221 Tm (TECHNICAL SKILLS) Tj ET
+0.75 0.8 0.78 RG 0.5 w 45 211 m 567 211 l S
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 200 Tm (Python | TypeScript | React | Next.js | AWS Cognito | Amazon S3 | Amazon RDS | DynamoDB) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 186 Tm (| SQLite | SIGINT | Progressive Web Apps | WebAssembly) Tj ET
+BT /F2 10 Tf 0.12 0.32 0.25 rg 1 0 0 1 45 162 Tm (SELECTED PROJECTS) Tj ET
+0.75 0.8 0.78 RG 0.5 w 45 152 m 567 152 l S
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 141 Tm (Private gym tracker) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 127 Tm (Built a Next.js and SQLite training log with device pairing, conflict-aware server) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 113 Tm (drafts, exercise history charts and private media attachments.) Tj ET
+BT /F2 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 96 Tm (Personal terminal website) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 82 Tm (Built an interactive shell with a simulated filesystem, keyboard commands, a neon sign) Tj ET
+BT /F1 10 Tf 0.12 0.14 0.15 rg 1 0 0 1 45 68 Tm (and an animated SDR waterfall.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Title (Riwaj Mainali - Resume) /Author (Riwaj Mainali) >>
+endobj
+8 0 obj
+<< /Type /Annot /Subtype /Link /Rect [45 704 142.2 716] /Border [0 0 0] /A << /S /URI /URI (https://www.linkedin.com/in/riwaj-mainali/) >> >>
+endobj
+9 0 obj
+<< /Type /Annot /Subtype /Link /Rect [200 704 243.2 716] /Border [0 0 0] /A << /S /URI /URI (https://riwaj.me) >> >>
+endobj
+10 0 obj
+<< /Type /Annot /Subtype /Link /Rect [290 704 322.4 716] /Border [0 0 0] /A << /S /URI /URI (https://github.com/RiwajMainali) >> >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000286 00000 n 
+0000000381 00000 n 
+0000000481 00000 n 
+0000005223 00000 n 
+0000005300 00000 n 
+0000005457 00000 n 
+0000005589 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R /Info 7 0 R >>
+startxref
+5737
+%%EOF

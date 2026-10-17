@@ -5,7 +5,7 @@ HTML paint; animation layers in after and should feel like part of the bit.
 
 ## Site
 - [x] Projects section (`projects`, `/projects`) with a gym tracker case study
-- [x] About page and LinkedIn contact with terminal commands
+- [x] About page, LinkedIn contact, and web/PDF résumé with terminal commands
 - [ ] Blog: real posts under `cd blog`, statically generated from markdown
 - [ ] Real `/blog` route behind the terminal command for crawlers and no-JS visitors (`/projects` is implemented)
 - [ ] More easter eggs in the shell

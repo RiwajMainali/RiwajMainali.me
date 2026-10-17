@@ -1,0 +1,70 @@
+{
+  "name": "Riwaj Mainali",
+  "headline": "SIGINT Developer | Software Developer",
+  "summary": "SIGINT and software developer building automated data pipelines, cloud applications and web interfaces with Python, TypeScript, React, Next.js and AWS.",
+  "linkedin": "https://www.linkedin.com/in/riwaj-mainali/",
+  "website": "https://riwaj.me",
+  "github": "https://github.com/RiwajMainali",
+  "experience": [
+    {
+      "title": "Signal Intelligence Developer and Analyst",
+      "organization": "US Navy",
+      "dates": "Feb 2025 - Present",
+      "bullets": [
+        "Designed and implemented an automated SIGINT data pipeline, reducing ingestion time by an estimated 20-30% and preparing data for faster analysis.",
+        "Integrated the pipeline into a larger SIGINT project, automating data handoff to support downstream analysis.",
+        "Coordinated with joint and interagency partners to integrate SIGINT tools and practices into mission planning."
+      ]
+    },
+    {
+      "title": "Software Developer",
+      "organization": "Aggregate Capital & Development Co.",
+      "dates": "May 2023 - Aug 2024",
+      "bullets": [
+        "Built inventory, repair-status and file-management systems for casino gaming machines, including endpoint testing for functionality, security and performance.",
+        "Implemented OTP authentication with AWS Cognito, file storage with S3 and relational database management with RDS; wrote Python tooling for Unity animation files in DynamoDB.",
+        "Developed React and Next.js progressive web interfaces integrating Unity games through WebAssembly, including offline functionality, server-side rendering and multi-format file upload and viewing."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "University of Maryland Global Campus",
+      "degree": "Master's Degree, Cyber/Electronic Operations and Warfare",
+      "dates": "Apr 2026 - Expected Jul 2027",
+      "detail": "In progress | GPA: 4.0"
+    },
+    {
+      "institution": "University of North Texas",
+      "degree": "Bachelor's Degree, Computer Science",
+      "dates": "2020 - May 2024",
+      "detail": ""
+    }
+  ],
+  "skills": [
+    "Python",
+    "TypeScript",
+    "React",
+    "Next.js",
+    "AWS Cognito",
+    "Amazon S3",
+    "Amazon RDS",
+    "DynamoDB",
+    "SQLite",
+    "SIGINT",
+    "Progressive Web Apps",
+    "WebAssembly"
+  ],
+  "projects": [
+    {
+      "name": "Private gym tracker",
+      "url": "https://riwaj.me/projects/gym",
+      "description": "Built a Next.js and SQLite training log with device pairing, conflict-aware server drafts, exercise history charts and private media attachments."
+    },
+    {
+      "name": "Personal terminal website",
+      "url": "https://riwaj.me",
+      "description": "Built an interactive shell with a simulated filesystem, keyboard commands, a neon sign and an animated SDR waterfall."
+    }
+  ]
+}
